@@ -145,8 +145,7 @@ def lambda_handler(event, context):
                 'history': updated_history,
                 'history_length': len(updated_history),
                 'audio_file': audio_result['filename'],
-                'audio_duration': audio_result['duration'],
-                'architecture': 'LangChainWorkflow + LangChainCore'
+                'audio_duration': audio_result['duration']
             },
         }
     
@@ -200,7 +199,6 @@ if __name__ == "__main__":
             
             if response['statusCode'] == 200:
                 print(f"✅ Success!")
-                print(f"🏗️  Architecture: {response['body']['architecture']}")
                 print(f"🔧 Tools used: {response['body']['tools_used']}")
                 print(f"📊 Tools count: {response['body']['tools_count']}")
                 if i == 1:

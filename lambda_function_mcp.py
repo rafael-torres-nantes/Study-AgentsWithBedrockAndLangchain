@@ -154,9 +154,7 @@ def lambda_handler(event, context=None):
                 'history': updated_history,
                 'history_length': len(updated_history),
                 'audio_file': audio_result['filename'],
-                'audio_duration': audio_result['duration'],
-                'architecture': 'MCPLangChainWorkflow + MCPLangChainCore',
-                'framework': 'LangChain + MCP (Simplified)'
+                'audio_duration': audio_result['duration']
             },
         }
     
@@ -181,6 +179,7 @@ if __name__ == "__main__":
     try:
         # Define test queries
         test_queries = [
+            "Qual o endereço do CEP 79081-120?",
             "How many times does the letter 'e' appear in the word 'elephant'?",
             "Hello! How are you?",
             "Count how many words are in the sentence 'The cat climbed on the roof'",
@@ -210,7 +209,6 @@ if __name__ == "__main__":
             
             if response['statusCode'] == 200:
                 print(f"✅ Success!")
-                print(f"🏗️  Architecture: {response['body']['architecture']}")
                 print(f"🔧 MCP Tools: {response['body']['mcp_tools_used']}")
                 print(f"📊 Total tools: {response['body']['total_tools']}")
                 if i == 1:
