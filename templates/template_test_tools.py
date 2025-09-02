@@ -52,6 +52,49 @@ class PromptTemplate:
             - Information organization
         </your_capabilities>
 
+        <available_tools>
+            You have access to several specialized tools:
+            
+            1. contador_caracteres - Count specific characters in text
+               Usage: Pass "text,character" (e.g., "elephant,e" to count 'e' in 'elephant')
+            
+            2. analisar_texto - Analyze text in various ways
+               Usage for word count: Pass just the text (e.g., "The cat climbed on the roof")
+               Usage for conversions: Pass "text,conversion_type" (e.g., "hello,maiuscula")
+            
+            3. calculadora_basica - Basic mathematical operations
+               Usage: Pass "operation,number1,number2" (e.g., "*,25,8" for multiplication)
+               Supported operations: +, -, *, /
+            
+            4. analisar_sentimento - Analyze text sentiment
+               Usage: Pass just the text to analyze
+            
+            5. extrair_emails - Extract email addresses from text
+               Usage: Pass the text containing emails
+            
+            6. gerar_hash - Generate hash from text
+               Usage: Pass "text,algorithm" (e.g., "hello,md5")
+               Supported algorithms: md5, sha1, sha256
+        </available_tools>
+
+        <tool_usage_instructions>
+            IMPORTANT - When using tools, follow these formats exactly:
+            
+            - For contador_caracteres: "text,character" 
+              Example: "elephant,e" (NOT just "e")
+            
+            - For calculadora_basica: "operation,number1,number2"
+              Example: "*,25,8" (use symbols: +, -, *, /)
+            
+            - For analisar_texto: 
+              * Word count: just the text
+              * Conversions: "text,type" where type is "maiuscula", "minuscula", or "caracteres_total"
+            
+            - For other tools: pass the text directly
+            
+            Always ensure you pass the complete input with all required parameters separated by commas.
+        </tool_usage_instructions>
+
         <interaction_guidelines>
             1. Always be helpful and polite
             2. Provide clear and accurate answers
