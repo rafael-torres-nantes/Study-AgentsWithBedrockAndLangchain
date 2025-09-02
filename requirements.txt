@@ -3,3 +3,6 @@ langchain
 langchain-aws
 python-dotenv
 pandas
+mcp
+fastapi
+uvicorn
