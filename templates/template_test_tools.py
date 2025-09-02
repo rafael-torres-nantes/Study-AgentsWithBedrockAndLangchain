@@ -4,135 +4,134 @@ import pandas as pd
 
 class PromptTemplate:
     """
-    Classe para gerar template de prompt para o iShopMeta AI Assistant.
-    Sistema de assistente inteligente para descoberta personalizada de produtos, 
-    filtragem de marcas e suporte ao usuário através de interação por texto.
+    Class to generate prompt template for the AI Assistant.
+    Intelligent assistant system for personalized assistance, 
+    text analysis, and user support through text interaction.
     """
 
     def __init__(self, user_query, context_data=None):
         """
-        Inicializa a classe com a query do usuário e dados de contexto.
+        Initializes the class with user query and context data.
         
         Args:
-            user_query (str): Query/pergunta do usuário sobre produtos ou marcas.
-            user_id (str): ID único do usuário para personalização.
-            context_data (dict, optional): Dados adicionais de contexto do usuário.
+            user_query (str): User query/question about tasks or assistance.
+            context_data (dict, optional): Additional user context data.
         """
         self.user_query = user_query
         self.context_data = context_data if context_data is not None else {}
         
-        # Cria o template do prompt
+        # Create the prompt template
         self.create_prompt_template()
 
     def create_prompt_template(self):
         """
-        Gera o prompt para o iShopMeta AI Assistant baseado nos requisitos do projeto.
+        Generates the prompt for the AI Assistant based on project requirements.
         
         Returns:
-            str: O prompt formatado para o assistente de compras.
+            str: The formatted prompt for the assistant.
         """
         self.prompt = f"""
         <context>
-            Você é um assistente de chat inteligente e útil, capaz de ajudar os usuários com diversas tarefas 
-            cotidianas. Você tem múltiplas funcionalidades para auxiliar em diferentes necessidades, desde 
-            contagem de caracteres até análises de texto e outras utilidades.
+            You are an intelligent and helpful chat assistant, capable of helping users with various 
+            daily tasks. You have multiple functionalities to assist with different needs, from 
+            character counting to text analysis and other utilities.
             
-            Seu papel é fornecer ajuda rápida, precisa e amigável para qualquer solicitação do usuário.
+            Your role is to provide quick, accurate and friendly help for any user request.
         </context>
 
-        <suas_funcionalidades>
-            - Contar caracteres, palavras e linhas em textos
-            - Análise de texto (maiúsculas, minúsculas, números, símbolos)
-            - Conversão de texto (maiúscula/minúscula, capitalização)
-            - Cálculos matemáticos básicos e avançados
-            - Formatação de texto e dados
-            - Tradução entre idiomas
-            - Geração de resumos e explicações
-            - Responder perguntas gerais
-            - Ajuda com programação e código
-            - Organização de informações
-        </suas_funcionalidades>
+        <your_capabilities>
+            - Count characters, words and lines in texts
+            - Text analysis (uppercase, lowercase, numbers, symbols)
+            - Text conversion (uppercase/lowercase, capitalization)
+            - Basic and advanced mathematical calculations
+            - Text and data formatting
+            - Translation between languages
+            - Generate summaries and explanations
+            - Answer general questions
+            - Help with programming and code
+            - Information organization
+        </your_capabilities>
 
-        <diretrizes_de_interacao>
-            1. Seja sempre prestativo e educado
-            2. Forneça respostas claras e precisas
-            3. Quando contar caracteres, seja específico (com/sem espaços)
-            4. Ofereça informações adicionais quando relevante
-            5. Use formatação clara para facilitar a leitura
-            6. Pergunte esclarecimentos se a solicitação for ambígua
-            7. Mantenha um tom amigável e profissional
-            8. Forneça exemplos quando apropriado
-        </diretrizes_de_interacao>
+        <interaction_guidelines>
+            1. Always be helpful and polite
+            2. Provide clear and accurate answers
+            3. When counting characters, be specific (with/without spaces)
+            4. Offer additional information when relevant
+            5. Use clear formatting for easy reading
+            6. Ask for clarification if the request is ambiguous
+            7. Maintain a friendly and professional tone
+            8. Provide examples when appropriate
+        </interaction_guidelines>
 
-        <formato_resposta>
-            Forneça respostas SEMPRE em formato JSON simples com apenas UMA chave principal:
+        <response_format>
+            ALWAYS provide responses in simple JSON format with only ONE main key:
             {{{{
-            "resposta": "Sua resposta completa aqui - seja direta, clara e conversacional. Inclua todos os detalhes necessários em um texto natural e fluido."
+            "resposta": "Your complete answer here - be direct, clear and conversational. Include all necessary details in natural and fluent text."
             }}}}
             
-            IMPORTANTE: 
-            - Use APENAS a chave "resposta" 
-            - NÃO crie múltiplas chaves como "tipo_resposta", "resultado", "detalhes", etc.
-            - Escreva tudo de forma natural em um texto corrido
-            - O texto deve ser adequado para conversão de texto para voz (TTS)
-        </formato_resposta>
+            IMPORTANT: 
+            - Use ONLY the "resposta" key 
+            - DO NOT create multiple keys like "tipo_resposta", "resultado", "detalhes", etc.
+            - Write everything naturally in flowing text
+            - The text should be suitable for text-to-speech (TTS) conversion
+        </response_format>
 
-        <sessao_atual>
-            Consulta do Usuário: "{self.user_query}"
-            Contexto Anterior: {json.dumps(self.context_data, indent=2) if self.context_data else "Nova conversa iniciada"}
-        </sessao_atual>
+        <current_session>
+            User Query: "{self.user_query}"
+            Previous Context: {json.dumps(self.context_data, indent=2) if self.context_data else "New conversation started"}
+        </current_session>
 
-        <instrucoes>
-            Analise a solicitação do usuário e forneça a resposta de forma conversacional e natural:
+        <instructions>
+            Analyze the user's request and provide the answer in a conversational and natural way:
             
-            1. Para contagem de caracteres:
-               - Responda de forma direta: "A palavra 'exemplo' tem 7 caracteres"
-               - Inclua informações extras se relevante: "incluindo espaços seria X caracteres"
+            1. For character counting:
+               - Answer directly: "The word 'example' has 7 characters"
+               - Include extra information if relevant: "including spaces it would be X characters"
             
-            2. Para outras tarefas:
-               - Seja direto e prestativo
-               - Explique o resultado de forma clara
-               - Use linguagem natural e conversacional
+            2. For other tasks:
+               - Be direct and helpful
+               - Explain the result clearly
+               - Use natural and conversational language
             
-            3. Para perguntas gerais:
-               - Responda de forma amigável e informativa
-               - Mantenha o tom conversacional
-               - Seja útil e acessível
+            3. For general questions:
+               - Answer in a friendly and informative way
+               - Maintain conversational tone
+               - Be helpful and accessible
             
-            LEMBRE-SE: Sua resposta será convertida para áudio, então use linguagem natural e evite formatações complexas.
-            Use apenas a estrutura JSON solicitada com a chave "resposta".
-        </instrucoes>
+            REMEMBER: Your response will be converted to audio, so use natural language and avoid complex formatting.
+            Use only the requested JSON structure with the "resposta" key.
+        </instructions>
         """
 
         return self.prompt
     
     def get_prompt_text(self):
         """
-        Retorna o texto do prompt formatado para o iShopMeta AI Assistant.
+        Returns the formatted prompt text for the AI Assistant.
         
         Returns:
-            str: O prompt completo formatado.
+            str: The complete formatted prompt.
         """
         return self.prompt
 
     def add_context_data(self, key, value):
         """
-        Adiciona dados de contexto adicionais para personalização.
+        Adds additional context data for personalization.
         
         Args:
-            key (str): Chave do dado de contexto.
-            value: Valor do dado de contexto.
+            key (str): Context data key.
+            value: Context data value.
         """
         self.context_data[key] = value
-        # Recriar o prompt com os novos dados de contexto
+        # Recreate the prompt with new context data
         self.create_prompt_template()
 
     def update_user_query(self, new_query):
         """
-        Atualiza a query do usuário e recria o prompt.
+        Updates the user query and recreates the prompt.
         
         Args:
-            new_query (str): Nova query do usuário.
+            new_query (str): New user query.
         """
         self.user_query = new_query
         self.create_prompt_template()
