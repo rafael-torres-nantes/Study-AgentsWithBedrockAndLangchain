@@ -32,7 +32,7 @@ TMP_DIR = os.getenv('TMP_DIR', './tmp')
 # ============================================================================
 # MCP Handler Function for Bedrock model inference using LangChain + MCP
 # ----------------------------------------------------------------------------
-def mcp_handler(event, context=None):
+def lambda_handler(event, context=None):
     """
     MCP Handler Function for Bedrock model inference using simplified LangChain + MCP architecture.
     
@@ -171,90 +171,6 @@ def mcp_handler(event, context=None):
         }
 
 # ============================================================================
-# Tests for mcp_handler function - Similar to lambda_function tests
-# ----------------------------------------------------------------------------
-def run_mcp_tests():
-    """
-    Executa testes do MCP handler usando arquitetura simplificada
-    """
-    print("=== 🎮 Testing Simplified MCP Architecture ===")
-    print("Architecture: MCPLangChainWorkflow (controller) + MCPLangChainCore (services)")
-
-    # Test 1: Character counting with MCP
-    test_event_1 = {
-        "query": "How many times does the letter 'e' appear in the word 'elephant'?",
-        "history": []
-    }
-    
-    print("\n📝 Test 1: Character counting (simplified MCP workflow)")
-    response1 = mcp_handler(test_event_1, None)
-    if response1['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response1['body']['architecture']}")
-        print(f"🔧 MCP Tools used: {response1['body']['mcp_tools_used']}")
-        print(f"📊 Total tools: {response1['body']['total_tools']}")
-        print(f"🎯 MCP tools count: {response1['body']['mcp_tools_count']}")
-    else:
-        print(f"❌ Error: {response1['body']['error']}")
-    
-    print("\n" + "-"*60 + "\n")
-    
-    # Test 2: Simple question (no tools needed)
-    test_event_2 = {
-        "query": "Hello! How are you?",
-        "history": []
-    }
-    
-    print("📝 Test 2: Simple question (tests MCPLangChainCore integration)")
-    response2 = mcp_handler(test_event_2, None)
-    if response2['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response2['body']['architecture']}")
-        print(f"🔧 MCP Tools available: {response2['body']['mcp_tools_used']}")
-        print(f"🏗 Framework: {response2['body']['framework']}")
-    else:
-        print(f"❌ Error: {response2['body']['error']}")
-    
-    print("\n" + "-"*60 + "\n")
-    
-    # Test 3: Complex analysis with MCP tools
-    test_event_3 = {
-        "query": "Count how many words are in the sentence 'The cat climbed on the roof'",
-        "history": []
-    }
-    
-    print("📝 Test 3: Word counting (tests MCP workflow orchestration)")
-    response3 = mcp_handler(test_event_3, None)
-    if response3['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response3['body']['architecture']}")
-        print(f"🔧 MCP Tools count: {response3['body']['mcp_tools_count']}")
-        print(f"📈 Model used: {response3['body']['model_used']}")
-        print(f"📊 Custom tools: {response3['body']['custom_tools_count']}")
-    else:
-        print(f"❌ Error: {response3['body']['error']}")
-    
-    print("\n" + "-"*60 + "\n")
-    
-    # Test 4: Math calculation with MCP
-    test_event_4 = {
-        "query": "Calculate 25 multiplied by 8",
-        "history": []
-    }
-    
-    print("📝 Test 4: Math calculation (tests MCP auto-discovery)")
-    response4 = mcp_handler(test_event_4, None)
-    if response4['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Framework: {response4['body']['framework']}")
-        print(f"📊 Response: {response4['body']['response']}")
-    else:
-        print(f"❌ Error: {response4['body']['error']}")
-    
-    print("\n🎉 All MCP tests completed with simplified architecture!")
-    print("🔄 Compare with lambda_function.py to see traditional vs MCP approaches")
-
-# ============================================================================
 # Main execution
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -263,13 +179,51 @@ if __name__ == "__main__":
     print("=" * 70)
     
     try:
-        # Executa os testes principais
-        run_mcp_tests()
-
-        print("\n✅ Demo completo executado com sucesso!")
-        print("🔍 Compare arquiteturas:")
-        print("   - lambda_function.py: LangChainWorkflow + LangChainCore")
-        print("   - lambda_function_mcp.py: MCPLangChainWorkflow + MCPLangChainCore")
+        # Define test queries
+        test_queries = [
+            "How many times does the letter 'e' appear in the word 'elephant'?",
+            "Hello! How are you?",
+            "Count how many words are in the sentence 'The cat climbed on the roof'",
+            "Calculate 25 multiplied by 8"
+        ]
+        
+        test_descriptions = [
+            "Character counting (simplified MCP workflow)",
+            "Simple question (tests MCPLangChainCore integration)", 
+            "Word counting (tests MCP workflow orchestration)",
+            "Math calculation (tests MCP auto-discovery)"
+        ]
+        
+        print("=== 🎮 Testing Simplified MCP Architecture ===")
+        print("Architecture: MCPLangChainWorkflow (controller) + MCPLangChainCore (services)")
+        
+        # Execute tests
+        for i, query in enumerate(test_queries, 1):
+            print(f"\n📝 Test {i}: {test_descriptions[i-1]}")
+            
+            test_event = {
+                "query": query,
+                "history": []
+            }
+            
+            response = lambda_handler(test_event, None)
+            
+            if response['statusCode'] == 200:
+                print(f"✅ Success!")
+                print(f"🏗️  Architecture: {response['body']['architecture']}")
+                print(f"🔧 MCP Tools: {response['body']['mcp_tools_used']}")
+                print(f"📊 Total tools: {response['body']['total_tools']}")
+                if i == 1:
+                    print(f"🎯 MCP tools count: {response['body']['mcp_tools_count']}")
+                elif i == 4:
+                    print(f"📊 Response: {response['body']['response']}")
+            else:
+                print(f"❌ Error: {response['body']['error']}")
+            
+            if i < len(test_queries):
+                print("\n" + "-"*60)
+        
+        print("\n🎉 All MCP tests completed with simplified architecture!")
         
     except Exception as e:
         logger.error(f"Erro durante a execução do demo: {e}")
