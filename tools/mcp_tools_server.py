@@ -13,6 +13,8 @@ from .text_tools import (
     AnalisadorSentimento, ExtratorEmail
 )
 from .utility_tools import CalculadoraBasica, GeradorHash
+from .countries_api_tools import ConsultaInformacoesPais
+from .cep_api_tools import ConsultaEnderecoPorCEP
 
 # Configuração do logger
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +39,9 @@ class MCPToolsRegistry:
             CalculadoraBasica(),
             AnalisadorSentimento(),
             ExtratorEmail(),
-            GeradorHash()
+            GeradorHash(),
+            ConsultaInformacoesPais(),
+            ConsultaEnderecoPorCEP()
         ]
         
         for tool in default_tools:
