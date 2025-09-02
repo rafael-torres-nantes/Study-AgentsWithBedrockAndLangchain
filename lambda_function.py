@@ -160,62 +160,61 @@ def lambda_handler(event, context):
             }
         }
 
-# Tests for lambda_handler function
+# ============================================================================
+# Main execution
+# ----------------------------------------------------------------------------
 if __name__ == "__main__":
-
-    print("=== 🎮 Testing Simplified LangChain Architecture ===")
-    print("Architecture: LangChainWorkflow (controller) + LangChainCore (services)")
-
-    # Test 1: Character counting with new architecture
-    test_event_1 = {
-        "query": "How many times does the letter 'e' appear in the word 'elephant'?",
-        "history": []
-    }
+    print("🤖 Lambda Handler Function Demo - Simplified Architecture")
+    print("Architecture: LangChainWorkflow + LangChainCore")
+    print("=" * 70)
     
-    print("\n📝 Test 1: Character counting (simplified workflow)")
-    response1 = lambda_handler(test_event_1, None)
-    if response1['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response1['body']['architecture']}")
-        print(f"🔧 Tools used: {response1['body']['tools_used']}")
-        print(f"📊 Tools count: {response1['body']['tools_count']}")
-    else:
-        print(f"❌ Error: {response1['body']['error']}")
-    
-    print("\n" + "-"*60 + "\n")
-    
-    # Test 2: Simple question (no tools needed) - tests core inference
-    test_event_2 = {
-        "query": "Hello! How are you?",
-        "history": []
-    }
-    
-    print("📝 Test 2: Simple question (tests LangChainCore integration)")
-    response2 = lambda_handler(test_event_2, None)
-    if response2['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response2['body']['architecture']}")
-        print(f"🔧 Tools used: {response2['body']['tools_used']}")
-    else:
-        print(f"❌ Error: {response2['body']['error']}")
-    
-    print("\n" + "-"*60 + "\n")
-    
-    # Test 3: Complex analysis with workflow
-    test_event_3 = {
-        "query": "Count how many words are in the sentence 'The cat climbed on the roof'",
-        "history": []
-    }
-    
-    print("📝 Test 3: Word counting (tests workflow orchestration)")
-    response3 = lambda_handler(test_event_3, None)
-    if response3['statusCode'] == 200:
-        print(f"✅ Success!")
-        print(f"🏗️  Architecture: {response3['body']['architecture']}")
-        print(f"🔧 Tools used: {response3['body']['tools_used']}")
-        print(f"📈 History length: {response3['body']['history_length']}")
-    else:
-        print(f"❌ Error: {response3['body']['error']}")
-    
-    print("\n🎉 All tests completed with simplified architecture!")
-    print("🔄 Compare with exemplo_mcp.py to see MCP vs traditional approaches")
+    try:
+        # Define test queries
+        test_queries = [
+            "How many times does the letter 'e' appear in the word 'elephant'?",
+            "Hello! How are you?",
+            "Count how many words are in the sentence 'The cat climbed on the roof'",
+            "Calculate 25 multiplied by 8"
+        ]
+        
+        test_descriptions = [
+            "Character counting (simplified workflow)",
+            "Simple question (tests LangChainCore integration)", 
+            "Word counting (tests workflow orchestration)",
+            "Math calculation (tests auto-discovery)"
+        ]
+        
+        print("=== 🎮 Testing Simplified LangChain Architecture ===")
+        print("Architecture: LangChainWorkflow (controller) + LangChainCore (services)")
+        
+        # Execute tests
+        for i, query in enumerate(test_queries, 1):
+            print(f"\n📝 Test {i}: {test_descriptions[i-1]}")
+            
+            test_event = {
+                "query": query,
+                "history": []
+            }
+            
+            response = lambda_handler(test_event, None)
+            
+            if response['statusCode'] == 200:
+                print(f"✅ Success!")
+                print(f"🏗️  Architecture: {response['body']['architecture']}")
+                print(f"🔧 Tools used: {response['body']['tools_used']}")
+                print(f"📊 Tools count: {response['body']['tools_count']}")
+                if i == 1:
+                    print(f"🎯 Model used: {response['body']['model_used']}")
+                elif i == 4:
+                    print(f"📊 Response: {response['body']['response']}")
+                    print(f"🎵 Audio file: {response['body']['audio_file']}")
+            else:
+                print(f"❌ Error: {response['body']['error']}")
+            
+            if i < len(test_queries):
+                print("\n" + "-"*60)
+        
+        print("\n🎉 All tests completed with simplified architecture!")
+        
+    except Exception as e:
+        print(f"\n❌ Erro durante a execução do demo: {e}")
