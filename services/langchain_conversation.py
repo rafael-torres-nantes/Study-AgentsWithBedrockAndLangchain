@@ -5,7 +5,7 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from typing import List, Dict, Optional, Any
 import logging
-from .langchain_inference import LangChainInference
+from services.langchain_inference import LangChainInference
 
 
 class LangChainConversation:
@@ -140,14 +140,17 @@ class LangChainConversation:
         
         # Itera sobre as mensagens no histórico e formata
         for message in self.chat_history.messages:
+            
             # Formata conforme o papel da mensagem
             if isinstance(message, HumanMessage):
                 history.append({"role": "user", "content": message.content})
+            
             # Adiciona mensagem do assistente
-            elif isinstance(message, AIMessage):
+            if isinstance(message, AIMessage):
                 history.append({"role": "assistant", "content": message.content})
+            
             # Adiciona mensagem do sistema (se houver)
-            elif isinstance(message, SystemMessage):
+            if isinstance(message, SystemMessage):
                 history.append({"role": "system", "content": message.content})
         
         return history
@@ -171,11 +174,13 @@ class LangChainConversation:
                 # Adiciona mensagem conforme o papel
                 if msg["role"] == "user":
                     self.chat_history.add_user_message(msg["content"])
+                
                 # Adiciona mensagem do assistente
-                elif msg["role"] == "assistant":
+                if msg["role"] == "assistant":
                     self.chat_history.add_ai_message(msg["content"])
+                
                 # Adiciona mensagem do sistema
-                elif msg["role"] == "system":
+                if msg["role"] == "system":
                     # Para mensagens do sistema, cria um SystemMessage diretamente
                     self.chat_history.messages.append(SystemMessage(content=msg["content"]))
             
