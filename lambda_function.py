@@ -3,7 +3,8 @@ import json
 from dotenv import load_dotenv
 
 # Import service classes needed for Lambda Function
-from services.langchain_agent import LangChainAgent
+from services.langchain_core import LangChainCore
+from controller.langchain_workflow import LangChainWorkflow
 from services.polly_services import TTSPollyService
 
 # Import tools from tools/ directory (without using __init__.py)
@@ -26,7 +27,10 @@ TMP_DIR = os.getenv('TMP_DIR', './tmp')
 # ----------------------------------------------------------------------------
 def lambda_handler(event, context):
     """
-    Lambda Function for Bedrock model inference using LangChain
+    Lambda Function for Bedrock model inference using simplified LangChain architecture.
+    
+    Uses the new LangChainWorkflow (controller) which integrates LangChainCore for
+    streamlined agent execution with tools and conversation management.
     
     Args:
         event: Event containing user query and parameters
@@ -59,13 +63,13 @@ def lambda_handler(event, context):
         prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
-        # 6 - Initialize Bedrock agent with LangChain
-        bedrock_service = LangChainAgent()
+        # 6 - Initialize Bedrock workflow with LangChain (replaces old agent)
+        bedrock_service = LangChainWorkflow()
         
         # 7 - Add all available tools from tools/ directory
         available_tools = get_all_tools()
-        for tool_func in available_tools:
-            bedrock_service.add_tool(tool_func)
+        tools_added = bedrock_service.add_tools(available_tools)
+        print(f'[DEBUG] Tools added: {tools_added}')
         
         # 8 - Create agent template according to prompt
         bedrock_service.create_agent_template(prompt_template)
@@ -129,18 +133,20 @@ def lambda_handler(event, context):
         print(f'        - Duration: {audio_result["duration"]} seconds')
         print(f'        - Processing time: {audio_result["processing_time"]} seconds')
 
-        # 19 - Prepare Lambda response
+        # 19 - Prepare Lambda response with enhanced information
         return {
             'statusCode': 200,
             'body': {
-                'message': 'Query processed successfully by agent.',
+                'message': 'Query processed successfully by simplified workflow.',
                 'response': response_json,
                 'model_used': bedrock_service.model_id,
                 'tools_used': [tool.name for tool in bedrock_service.tools],
+                'tools_count': len(bedrock_service.tools),
                 'history': updated_history,
                 'history_length': len(updated_history),
                 'audio_file': audio_result['filename'],
-                'audio_duration': audio_result['duration']
+                'audio_duration': audio_result['duration'],
+                'architecture': 'LangChainWorkflow + LangChainCore'
             },
         }
     
@@ -157,52 +163,59 @@ def lambda_handler(event, context):
 # Tests for lambda_handler function
 if __name__ == "__main__":
 
-    print("=== 🎮 Testing Modularized Tools ===")
+    print("=== 🎮 Testing Simplified LangChain Architecture ===")
+    print("Architecture: LangChainWorkflow (controller) + LangChainCore (services)")
 
-    # Test 1: Character counting
+    # Test 1: Character counting with new architecture
     test_event_1 = {
         "query": "How many times does the letter 'e' appear in the word 'elephant'?",
         "history": []
     }
     
-    print("📝 Test 1: Character counting")
+    print("\n📝 Test 1: Character counting (simplified workflow)")
     response1 = lambda_handler(test_event_1, None)
     if response1['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response1['body']['architecture']}")
         print(f"🔧 Tools used: {response1['body']['tools_used']}")
+        print(f"📊 Tools count: {response1['body']['tools_count']}")
     else:
         print(f"❌ Error: {response1['body']['error']}")
     
     print("\n" + "-"*60 + "\n")
     
-    # Test 2: Simple question (no tools needed)
+    # Test 2: Simple question (no tools needed) - tests core inference
     test_event_2 = {
         "query": "Hello! How are you?",
         "history": []
     }
     
-    print("📝 Test 2: Simple question (no tools)")
+    print("📝 Test 2: Simple question (tests LangChainCore integration)")
     response2 = lambda_handler(test_event_2, None)
     if response2['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response2['body']['architecture']}")
         print(f"🔧 Tools used: {response2['body']['tools_used']}")
     else:
         print(f"❌ Error: {response2['body']['error']}")
     
     print("\n" + "-"*60 + "\n")
     
-    # Test 3: Complex analysis
+    # Test 3: Complex analysis with workflow
     test_event_3 = {
         "query": "Count how many words are in the sentence 'The cat climbed on the roof'",
         "history": []
     }
     
-    print("📝 Test 3: Word counting")
+    print("📝 Test 3: Word counting (tests workflow orchestration)")
     response3 = lambda_handler(test_event_3, None)
     if response3['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response3['body']['architecture']}")
         print(f"🔧 Tools used: {response3['body']['tools_used']}")
+        print(f"📈 History length: {response3['body']['history_length']}")
     else:
         print(f"❌ Error: {response3['body']['error']}")
     
-    print("\n🎉 All tests completed!")
+    print("\n🎉 All tests completed with simplified architecture!")
+    print("🔄 Compare with exemplo_mcp.py to see MCP vs traditional approaches")
