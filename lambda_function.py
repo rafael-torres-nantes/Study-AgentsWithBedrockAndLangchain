@@ -2,98 +2,145 @@ import os
 import json
 from dotenv import load_dotenv
 
-# Importar as classes de serviços necessárias para a Lambda Function
+# Import service classes needed for Lambda Function
 from services.langchain_agent import LangChainAgent
+from services.polly_services import TTSPollyService
 
-# Importar tools da pasta tools/ (sem usar __init__.py)
+# Import tools from tools/ directory (without using __init__.py)
 from tools.tool_loader import get_all_tools
 
-# Importar utilitários
-from utils import process_response
+# Import utilities
+from utils.response_processor import ResponseProcessor, process_response 
 
-# Importar a classes de templates para a llm
+# Import template classes for LLM
 from templates.prompt_template import PromptTemplate
 from templates.template_test_tools import PromptTemplate as TriviaPromptTemplate
 
 load_dotenv()
 
+# Get temporary directory from .env file
+TMP_DIR = os.getenv('TMP_DIR', './tmp')
+
 # ============================================================================
-# Função Lambda para inferência de modelos no Bedrock usando LangChain
+# Lambda Function for Bedrock model inference using LangChain
 # ----------------------------------------------------------------------------
 def lambda_handler(event, context):
     """
-    Lambda Function para inferência de modelos no Bedrock usando LangChain
+    Lambda Function for Bedrock model inference using LangChain
     
     Args:
-        event: Evento contendo a query do usuário e parâmetros
-        context: Contexto da Lambda
+        event: Event containing user query and parameters
+        context: Lambda context
         
     Returns:
-        dict: Resposta com status e dados processados
+        dict: Response with status and processed data
     """
     
+    # 1 - Print received event and start processing
     print('*********** Start Lambda - AI Assistant with LangChain ***************') 
     print(f'[DEBUG] Event: {event}') 
+
+    # 2 - Ensure temporary directory exists
+    os.makedirs(TMP_DIR, exist_ok=True)
+    print(f'[DEBUG] Temporary directory configured: {TMP_DIR}')
    
     try:
-        # 1 - Obtém parâmetros do evento
+        # 3 - Extract event parameters
         user_query = event.get('query', '')
         conversation_history = event.get('history', [])
         
-        # 2 - Validação
+        # 4 - Validate user query
         if not user_query:
-            raise ValueError("Query do usuário é obrigatória")
-
+            raise ValueError("User query is required")
         print(f'[DEBUG] User Query: {user_query}')
         print(f'[DEBUG] History length: {len(conversation_history)}')
 
-        # 3 - Define o template para a llm
+        # 5 - Define template for LLM
         prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
-        print(f'[DEBUG] Prompt Template: {prompt_template[:200]}...')
+        print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
-        # 4 - Inicializa o agente
+        # 6 - Initialize Bedrock agent with LangChain
         bedrock_service = LangChainAgent()
         
-        # 5 - Adiciona todas as tools disponíveis da pasta tools/
+        # 7 - Add all available tools from tools/ directory
         available_tools = get_all_tools()
         for tool_func in available_tools:
             bedrock_service.add_tool(tool_func)
         
-        # Cria template para agente
+        # 8 - Create agent template according to prompt
         bedrock_service.create_agent_template(prompt_template)
         
-        # Cria o agente
+        # 9 - Create agent with tools
         if not bedrock_service.create_agent():
-            raise ValueError("Falha ao criar agente com tools")
-        
+            raise ValueError("Failed to create agent with tools")
         print(f'[DEBUG] Model ID: {bedrock_service.model_id}')
-        print(f'[DEBUG] Tools disponíveis: {[tool.name for tool in bedrock_service.tools]}')
+        print(f'[DEBUG] Available tools: {[tool.name for tool in bedrock_service.tools]}')
                 
-        # 6 - Carrega histórico se fornecido
+        # 10 - Load conversation history if provided
         if conversation_history:
             bedrock_service.load_conversation_history(conversation_history)
-            print(f'[DEBUG] Histórico carregado: {len(conversation_history)} mensagens')
+            print(f'[DEBUG] History loaded: {len(conversation_history)} messages')
         
-        # 7 - Realiza a inferência usando o agente
+        # 11 - Perform inference using agent
         response = bedrock_service.invoke_agent(user_query)
-        print(f'[DEBUG] Resposta do Bedrock: {response}') 
+        print(f'[DEBUG] Bedrock response: {response}') 
 
-        # 8 - Processa resposta do agente usando utilitário
+        # 12 - Process agent response using utility
         response_json = process_response(response)
 
-        # 9 - Obtém histórico atualizado
+        # 13 - Get updated conversation history
         updated_history = bedrock_service.get_conversation_history()
 
-        # 10 - Prepara a resposta da Lambda
+        # 14 - Get optional TTS parameters with default values
+        voice_id = event.get('voice_id', 'Joanna')
+        output_format = event.get('output_format', 'mp3')
+        speed = event.get('speed', 'medium')
+        use_neural = event.get('use_neural', True)
+        
+        print(f'[DEBUG] TTS parameters configured:')
+        print(f'        - Voice ID: {voice_id}')
+        print(f'        - Format: {output_format}')
+        print(f'        - Speed: {speed}')
+        print(f'        - Neural Engine: {use_neural}')
+
+        # 15 - Initialize TTS service with custom temporary directory
+        tts_service = TTSPollyService(output_dir=TMP_DIR)
+        print(f'[DEBUG] TTS service successfully initialized')
+
+        # 16 - Extract text for TTS from response
+        tts_text = response_json.get('resposta', response_json.get('message', 'No response available'))
+
+        # 17 - Convert text to speech
+        audio_result = tts_service.text_to_speech(
+            text=tts_text,
+            voice_id=voice_id,
+            output_format=output_format,
+            speed=speed,
+            use_neural=use_neural
+        )
+        
+        # 18 - Check if conversion was successful
+        if not audio_result['success']:
+            raise Exception(f"TTS conversion error: {audio_result['error']}")
+        
+        print(f'[DEBUG] TTS conversion completed successfully:')
+        print(f'        - File: {audio_result["filename"]}')
+        print(f'        - Size: {audio_result["file_size_mb"]} MB')
+        print(f'        - Duration: {audio_result["duration"]} seconds')
+        print(f'        - Processing time: {audio_result["processing_time"]} seconds')
+
+        # 19 - Prepare Lambda response
         return {
             'statusCode': 200,
             'body': {
-                'message': 'Query processada com sucesso pelo agente.',
+                'message': 'Query processed successfully by agent.',
                 'response': response_json,
                 'model_used': bedrock_service.model_id,
                 'tools_used': [tool.name for tool in bedrock_service.tools],
                 'history': updated_history,
-                'history_length': len(updated_history)
+                'history_length': len(updated_history),
+                'audio_file': audio_result['filename'],
+                'audio_duration': audio_result['duration']
             },
         }
     
@@ -103,59 +150,59 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': {
                 'error': str(e),
-                'message': 'Erro ao processar query do usuário'
+                'message': 'Error processing user query'
             }
         }
 
-# Testes da função lambda_handler
+# Tests for lambda_handler function
 if __name__ == "__main__":
 
-    print("=== 🎮 Teste das Tools Modularizadas ===")
+    print("=== 🎮 Testing Modularized Tools ===")
 
-    # Teste 1: Contagem de caracteres
+    # Test 1: Character counting
     test_event_1 = {
-        "query": "Quantas vezes a letra 'e' aparece na palavra 'elefante'?",
+        "query": "How many times does the letter 'e' appear in the word 'elephant'?",
         "history": []
     }
     
-    print("📝 Teste 1: Contagem de caracteres")
+    print("📝 Test 1: Character counting")
     response1 = lambda_handler(test_event_1, None)
     if response1['statusCode'] == 200:
-        print(f"✅ Sucesso!")
-        print(f"🔧 Tools usadas: {response1['body']['tools_used']}")
+        print(f"✅ Success!")
+        print(f"🔧 Tools used: {response1['body']['tools_used']}")
     else:
-        print(f"❌ Erro: {response1['body']['error']}")
+        print(f"❌ Error: {response1['body']['error']}")
     
     print("\n" + "-"*60 + "\n")
     
-    # Teste 2: Pergunta que não precisa de tool
+    # Test 2: Simple question (no tools needed)
     test_event_2 = {
-        "query": "Olá! Como você está?",
+        "query": "Hello! How are you?",
         "history": []
     }
     
-    print("� Teste 2: Pergunta simples (sem tool)")
+    print("📝 Test 2: Simple question (no tools)")
     response2 = lambda_handler(test_event_2, None)
     if response2['statusCode'] == 200:
-        print(f"✅ Sucesso!")
-        print(f"🔧 Tools usadas: {response2['body']['tools_used']}")
+        print(f"✅ Success!")
+        print(f"🔧 Tools used: {response2['body']['tools_used']}")
     else:
-        print(f"❌ Erro: {response2['body']['error']}")
+        print(f"❌ Error: {response2['body']['error']}")
     
     print("\n" + "-"*60 + "\n")
     
-    # Teste 3: Análise mais complexa
+    # Test 3: Complex analysis
     test_event_3 = {
-        "query": "Conte quantas palavras tem na frase 'O gato subiu no telhado'",
+        "query": "Count how many words are in the sentence 'The cat climbed on the roof'",
         "history": []
     }
     
-    print("📝 Teste 3: Contagem de palavras")
+    print("📝 Test 3: Word counting")
     response3 = lambda_handler(test_event_3, None)
     if response3['statusCode'] == 200:
-        print(f"✅ Sucesso!")
-        print(f"🔧 Tools usadas: {response3['body']['tools_used']}")
+        print(f"✅ Success!")
+        print(f"🔧 Tools used: {response3['body']['tools_used']}")
     else:
-        print(f"❌ Erro: {response3['body']['error']}")
+        print(f"❌ Error: {response3['body']['error']}")
     
-    print("\n🎉 Todos os testes concluídos!")
+    print("\n🎉 All tests completed!")
