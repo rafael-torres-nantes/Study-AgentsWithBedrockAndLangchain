@@ -88,23 +88,29 @@ class MCPLangChainWorkflow:
             return 0
     
     def _discover_mcp_tools(self) -> List[BaseTool]:
-        """Descobre MCP tools disponíveis no server."""
+        """
+        Descobre MCP tools disponíveis no server usando módulo de discovery otimizado.
+        
+        Returns:
+            List[BaseTool]: Lista de tools descobertas (MCP + fallback se necessário)
+        """
         try:
-            # Primeiro tenta carregar as MCP tools do server dedicado
-            from tools.mcp_tools_server import get_mcp_tools
-            return get_mcp_tools()
-        except ImportError:
-            # Se não encontrar o servidor MCP, usa as tools tradicionais como fallback
-            self.logger.info("MCP server não encontrado, usando tools tradicionais como fallback")
-            try:
-                from tools.tool_loader import get_all_tools
-                return get_all_tools()
-            except ImportError:
-                self.logger.warning("Nenhuma tool encontrada")
-                return []
+            from tools.tool_wrappers import get_tool_discovery
+            
+            # Usa o sistema de discovery otimizado
+            discovery = get_tool_discovery()
+            tools = discovery.discover_all_tools()
+            
+            if tools:
+                self.logger.info(f"Sistema de discovery carregou {len(tools)} tools com sucesso")
+            else:
+                self.logger.warning("Nenhuma tool foi descoberta pelo sistema")
+            
+            return tools
+            
         except Exception as e:
-            self.logger.error(f"Erro ao descobrir MCP tools: {e}")
-            return []
+            self.logger.error(f"Erro no sistema de discovery: {e}")
+            return self._fallback_manual_discovery()
     
     def register_mcp_tool(self, tool: BaseTool) -> bool:
         """Registra uma MCP tool específica."""
@@ -393,3 +399,46 @@ class MCPLangChainWorkflow:
             'mcp_status': self.core.get_mcp_status(),
             'timestamp': str(os.popen('echo %date% %time%').read().strip()) if os.name == 'nt' else str(os.popen('date').read().strip())
         }
+    
+    def _fallback_manual_discovery(self) -> List[BaseTool]:
+        """
+        Fallback manual para discovery de tools em caso de falha total do sistema otimizado.
+        Método básico de emergência.
+        
+        Returns:
+            List[BaseTool]: Lista básica de tools ou lista vazia
+        """
+        try:
+            self.logger.warning("Usando fallback manual de descoberta de tools")
+            
+            # Tenta importação direta básica
+            try:
+                from tools.mcp_tools_server import contador_caracteres, analisar_texto
+                from langchain_core.tools import tool
+                
+                @tool
+                def emergency_counter(input_text: str) -> str:
+                    """Emergency character counter"""
+                    parts = input_text.split(",", 1)
+                    if len(parts) == 2:
+                        return contador_caracteres(parts[0], parts[1])
+                    return "Formato: texto,caracter"
+                
+                @tool  
+                def emergency_analyzer(input_text: str) -> str:
+                    """Emergency text analyzer"""
+                    return analisar_texto(input_text)
+                
+                emergency_counter.name = "contador_caracteres"
+                emergency_analyzer.name = "analisar_texto"
+                
+                self.logger.info("Fallback manual carregou 2 tools básicas")
+                return [emergency_counter, emergency_analyzer]
+                
+            except ImportError:
+                self.logger.error("Fallback manual também falhou")
+                return []
+                
+        except Exception as e:
+            self.logger.error(f"Erro crítico no fallback manual: {e}")
+            return []
