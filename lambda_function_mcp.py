@@ -1,14 +1,16 @@
 """
 Exemplo de função handler usando sistema LangChain refatorado com MCP (Model Context Protocol)
 Estrutura similar ao lambda_function.py para comparação de melhores práticas
+Versão simplificada usando MCPLangChainWorkflow + MCPLangChainCore
 """
 import os
 import json
 import logging
 from dotenv import load_dotenv
 
-# Import service classes para MCP Handler Function
-from services.mcp_langchain_agent import MCPLangChainAgent
+# Import service classes para MCP Handler Function - SIMPLIFIED ARCHITECTURE
+from services.mcp_langchain_core import MCPLangChainCore
+from controller.mcp_langchain_workflow import MCPLangChainWorkflow
 from services.polly_services import TTSPollyService
 
 # Import utilities
@@ -32,7 +34,10 @@ TMP_DIR = os.getenv('TMP_DIR', './tmp')
 # ----------------------------------------------------------------------------
 def mcp_handler(event, context=None):
     """
-    MCP Handler Function for Bedrock model inference using LangChain with MCP Tools
+    MCP Handler Function for Bedrock model inference using simplified LangChain + MCP architecture.
+    
+    Uses MCPLangChainWorkflow (controller) which integrates MCPLangChainCore for
+    streamlined MCP agent execution with automatic tool discovery and loading.
     
     Args:
         event: Event containing user query and parameters
@@ -65,12 +70,13 @@ def mcp_handler(event, context=None):
         prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
-        # 6 - Initialize Bedrock MCP agent with LangChain
-        bedrock_mcp_service = MCPLangChainAgent()
+        # 6 - Initialize Bedrock MCP workflow with LangChain (simplified architecture)
+        bedrock_mcp_service = MCPLangChainWorkflow(auto_load_mcp=True)
         
-        # 7 - MCP tools are automatically loaded by MCPLangChainAgent
-        print(f'[DEBUG] MCP Tools automatically loaded: {len(bedrock_mcp_service.list_mcp_tools())}')
-        print(f'[DEBUG] Available MCP tools: {bedrock_mcp_service.list_mcp_tools()}')
+        # 7 - MCP tools are automatically loaded by MCPLangChainWorkflow
+        mcp_tools_info = bedrock_mcp_service.get_mcp_tools_info()
+        print(f'[DEBUG] MCP Tools automatically loaded: {len(mcp_tools_info)}')
+        print(f'[DEBUG] Available MCP tools: {[tool["name"] for tool in mcp_tools_info]}')
         
         # 8 - Create agent template according to prompt
         bedrock_mcp_service.create_agent_template(prompt_template)
@@ -134,21 +140,23 @@ def mcp_handler(event, context=None):
         print(f'        - Duration: {audio_result["duration"]} seconds')
         print(f'        - Processing time: {audio_result["processing_time"]} seconds')
 
-        # 19 - Prepare MCP Handler response
+        # 19 - Prepare MCP Handler response with enhanced information
         return {
             'statusCode': 200,
             'body': {
-                'message': 'Query processed successfully by MCP agent.',
+                'message': 'Query processed successfully by simplified MCP workflow.',
                 'response': response_json,
                 'model_used': bedrock_mcp_service.model_id,
-                'mcp_tools_used': bedrock_mcp_service.list_mcp_tools(),
+                'mcp_tools_used': [tool["name"] for tool in mcp_tools_info],
                 'total_tools': len(bedrock_mcp_service.get_available_tools()),
-                'mcp_tools_count': len(bedrock_mcp_service.list_mcp_tools()),
+                'mcp_tools_count': len(mcp_tools_info),
+                'custom_tools_count': len(bedrock_mcp_service.tools) - len(bedrock_mcp_service.mcp_tools),
                 'history': updated_history,
                 'history_length': len(updated_history),
                 'audio_file': audio_result['filename'],
                 'audio_duration': audio_result['duration'],
-                'framework': 'LangChain + MCP'
+                'architecture': 'MCPLangChainWorkflow + MCPLangChainCore',
+                'framework': 'LangChain + MCP (Simplified)'
             },
         }
     
@@ -167,9 +175,10 @@ def mcp_handler(event, context=None):
 # ----------------------------------------------------------------------------
 def run_mcp_tests():
     """
-    Executa testes do MCP handler similar aos testes do lambda_function
+    Executa testes do MCP handler usando arquitetura simplificada
     """
-    print("=== 🎮 Testing MCP Modularized Tools ===")
+    print("=== 🎮 Testing Simplified MCP Architecture ===")
+    print("Architecture: MCPLangChainWorkflow (controller) + MCPLangChainCore (services)")
 
     # Test 1: Character counting with MCP
     test_event_1 = {
@@ -177,12 +186,14 @@ def run_mcp_tests():
         "history": []
     }
     
-    print("📝 Test 1: Character counting (MCP)")
+    print("\n📝 Test 1: Character counting (simplified MCP workflow)")
     response1 = mcp_handler(test_event_1, None)
     if response1['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response1['body']['architecture']}")
         print(f"🔧 MCP Tools used: {response1['body']['mcp_tools_used']}")
         print(f"📊 Total tools: {response1['body']['total_tools']}")
+        print(f"🎯 MCP tools count: {response1['body']['mcp_tools_count']}")
     else:
         print(f"❌ Error: {response1['body']['error']}")
     
@@ -194,10 +205,11 @@ def run_mcp_tests():
         "history": []
     }
     
-    print("📝 Test 2: Simple question (no MCP tools)")
+    print("📝 Test 2: Simple question (tests MCPLangChainCore integration)")
     response2 = mcp_handler(test_event_2, None)
     if response2['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response2['body']['architecture']}")
         print(f"🔧 MCP Tools available: {response2['body']['mcp_tools_used']}")
         print(f"🏗 Framework: {response2['body']['framework']}")
     else:
@@ -211,12 +223,14 @@ def run_mcp_tests():
         "history": []
     }
     
-    print("📝 Test 3: Word counting (MCP)")
+    print("📝 Test 3: Word counting (tests MCP workflow orchestration)")
     response3 = mcp_handler(test_event_3, None)
     if response3['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Architecture: {response3['body']['architecture']}")
         print(f"🔧 MCP Tools count: {response3['body']['mcp_tools_count']}")
         print(f"📈 Model used: {response3['body']['model_used']}")
+        print(f"📊 Custom tools: {response3['body']['custom_tools_count']}")
     else:
         print(f"❌ Error: {response3['body']['error']}")
     
@@ -228,28 +242,34 @@ def run_mcp_tests():
         "history": []
     }
     
-    print("📝 Test 4: Math calculation (MCP)")
+    print("📝 Test 4: Math calculation (tests MCP auto-discovery)")
     response4 = mcp_handler(test_event_4, None)
     if response4['statusCode'] == 200:
         print(f"✅ Success!")
+        print(f"🏗️  Framework: {response4['body']['framework']}")
         print(f"📊 Response: {response4['body']['response']}")
     else:
         print(f"❌ Error: {response4['body']['error']}")
     
-    print("\n🎉 All MCP tests completed!")
+    print("\n🎉 All MCP tests completed with simplified architecture!")
+    print("🔄 Compare with lambda_function.py to see traditional vs MCP approaches")
 
 # ============================================================================
 # Main execution
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("🤖 MCP Handler Function Demo")
-    print("=" * 60)
+    print("🤖 MCP Handler Function Demo - Simplified Architecture")
+    print("Architecture: MCPLangChainWorkflow + MCPLangChainCore")
+    print("=" * 70)
     
     try:
         # Executa os testes principais
         run_mcp_tests()
 
         print("\n✅ Demo completo executado com sucesso!")
+        print("🔍 Compare arquiteturas:")
+        print("   - lambda_function.py: LangChainWorkflow + LangChainCore")
+        print("   - lambda_function_mcp.py: MCPLangChainWorkflow + MCPLangChainCore")
         
     except Exception as e:
         logger.error(f"Erro durante a execução do demo: {e}")
