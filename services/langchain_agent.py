@@ -1,11 +1,10 @@
 import os
-from dotenv import load_dotenv
+import logging
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import BaseTool
 from typing import List, Dict, Optional, Any, Callable
-import logging
-from .langchain_conversation import LangChainConversation
+from services.langchain_conversation import LangChainConversation
 
 
 class LangChainAgent:
@@ -90,6 +89,7 @@ class LangChainAgent:
         try:
             if tool not in self.tools:
                 self.tools.append(tool)
+                
                 # Se já existe um agente, precisa recriar com as novas tools
                 if self.agent is not None:
                     self._recreate_agent()
@@ -111,7 +111,10 @@ class LangChainAgent:
         Returns:
             int: Número de tools adicionadas com sucesso
         """
+        # Variável para contar quantas tools foram adicionadas
         added_count = 0
+
+        # Percorre a lista de tools e tenta adicionar cada uma
         for tool in tools:
             if self.add_tool(tool):
                 added_count += 1
@@ -131,12 +134,14 @@ class LangChainAgent:
             for i, tool in enumerate(self.tools):
                 if tool.name == tool_name:
                     self.tools.pop(i)
+                    
                     # Se já existe um agente, precisa recriar com as tools atualizadas
                     if self.agent is not None:
                         self._recreate_agent()
                     return True
             self.logger.warning(f"Tool {tool_name} não encontrada")
             return False
+        
         except Exception as e:
             self.logger.error(f"Erro ao remover tool: {e}")
             return False
