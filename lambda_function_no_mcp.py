@@ -1,17 +1,14 @@
-"""
-Exemplo de função handler usando sistema LangChain refatorado com MCP (Model Context Protocol)
-Estrutura similar ao lambda_function.py para comparação de melhores práticas
-Versão simplificada usando MCPLangChainWorkflow + MCPLangChainCore
-"""
 import os
 import json
-import logging
 from dotenv import load_dotenv
 
-# Import service classes para MCP Handler Function - SIMPLIFIED ARCHITECTURE
-from services.mcp_langchain_core import MCPLangChainCore
-from controller.mcp_langchain_workflow import MCPLangChainWorkflow
+# Import service classes needed for Lambda Function
+from services.langchain_core import LangChainCore
+from controller.langchain_workflow import LangChainWorkflow
 from services.polly_services import TTSPollyService
+
+# Import tools from tools/ directory (without using __init__.py)
+from tools.tool_loader import get_all_tools
 
 # Import utilities
 from utils.response_processor import ResponseProcessor, process_response 
@@ -22,33 +19,29 @@ from templates.template_test_tools import PromptTemplate as TriviaPromptTemplate
 
 load_dotenv()
 
-# Configuração de logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # Get temporary directory from .env file
 TMP_DIR = os.getenv('TMP_DIR', './tmp')
 
 # ============================================================================
-# MCP Handler Function for Bedrock model inference using LangChain + MCP
+# Lambda Function for Bedrock model inference using LangChain
 # ----------------------------------------------------------------------------
-def lambda_handler(event, context=None):
+def lambda_handler(event, context):
     """
-    MCP Handler Function for Bedrock model inference using simplified LangChain + MCP architecture.
+    Lambda Function for Bedrock model inference using simplified LangChain architecture.
     
-    Uses MCPLangChainWorkflow (controller) which integrates MCPLangChainCore for
-    streamlined MCP agent execution with automatic tool discovery and loading.
+    Uses the new LangChainWorkflow (controller) which integrates LangChainCore for
+    streamlined agent execution with tools and conversation management.
     
     Args:
         event: Event containing user query and parameters
-        context: Handler context (similar to Lambda context)
+        context: Lambda context
         
     Returns:
         dict: Response with status and processed data
     """
     
     # 1 - Print received event and start processing
-    print('*********** Start MCP Handler - AI Assistant with LangChain + MCP ***************') 
+    print('*********** Start Lambda - AI Assistant with LangChain ***************') 
     print(f'[DEBUG] Event: {event}') 
 
     # 2 - Ensure temporary directory exists
@@ -70,37 +63,37 @@ def lambda_handler(event, context=None):
         prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
-        # 6 - Initialize Bedrock MCP workflow with LangChain (simplified architecture)
-        bedrock_mcp_service = MCPLangChainWorkflow(auto_load_mcp=True)
+        # 6 - Initialize Bedrock workflow with LangChain (replaces old agent)
+        bedrock_service = LangChainWorkflow()
         
-        # 7 - MCP tools are automatically loaded by MCPLangChainWorkflow
-        mcp_tools_info = bedrock_mcp_service.get_mcp_tools_info()
-        print(f'[DEBUG] MCP Tools automatically loaded: {len(mcp_tools_info)}')
-        print(f'[DEBUG] Available MCP tools: {[tool["name"] for tool in mcp_tools_info]}')
+        # 7 - Add all available tools from tools/ directory
+        available_tools = get_all_tools()
+        tools_added = bedrock_service.add_tools(available_tools)
+        print(f'[DEBUG] Tools added: {tools_added}')
         
         # 8 - Create agent template according to prompt
-        bedrock_mcp_service.create_agent_template(prompt_template)
+        bedrock_service.create_agent_template(prompt_template)
         
-        # 9 - Create agent with MCP tools
-        if not bedrock_mcp_service.create_agent():
-            raise ValueError("Failed to create MCP agent with tools")
-        print(f'[DEBUG] Model ID: {bedrock_mcp_service.model_id}')
-        print(f'[DEBUG] Total tools available: {len(bedrock_mcp_service.get_available_tools())}')
+        # 9 - Create agent with tools
+        if not bedrock_service.create_agent():
+            raise ValueError("Failed to create agent with tools")
+        print(f'[DEBUG] Model ID: {bedrock_service.model_id}')
+        print(f'[DEBUG] Available tools: {[tool.name for tool in bedrock_service.tools]}')
                 
         # 10 - Load conversation history if provided
         if conversation_history:
-            bedrock_mcp_service.load_conversation_history(conversation_history)
+            bedrock_service.load_conversation_history(conversation_history)
             print(f'[DEBUG] History loaded: {len(conversation_history)} messages')
         
-        # 11 - Perform inference using MCP agent
-        response = bedrock_mcp_service.invoke_agent(user_query)
-        print(f'[DEBUG] Bedrock MCP response: {response}') 
+        # 11 - Perform inference using agent
+        response = bedrock_service.invoke_agent(user_query)
+        print(f'[DEBUG] Bedrock response: {response}') 
 
         # 12 - Process agent response using utility
         response_json = process_response(response)
 
         # 13 - Get updated conversation history
-        updated_history = bedrock_mcp_service.get_conversation_history()
+        updated_history = bedrock_service.get_conversation_history()
 
         # 14 - Get optional TTS parameters with default values
         voice_id = event.get('voice_id', 'Joanna')
@@ -140,17 +133,15 @@ def lambda_handler(event, context=None):
         print(f'        - Duration: {audio_result["duration"]} seconds')
         print(f'        - Processing time: {audio_result["processing_time"]} seconds')
 
-        # 19 - Prepare MCP Handler response with enhanced information
+        # 19 - Prepare Lambda response with enhanced information
         return {
             'statusCode': 200,
             'body': {
-                'message': 'Query processed successfully by simplified MCP workflow.',
+                'message': 'Query processed successfully by simplified workflow.',
                 'response': response_json,
-                'model_used': bedrock_mcp_service.model_id,
-                'mcp_tools_used': [tool["name"] for tool in mcp_tools_info],
-                'total_tools': len(bedrock_mcp_service.get_available_tools()),
-                'mcp_tools_count': len(mcp_tools_info),
-                'custom_tools_count': len(bedrock_mcp_service.tools) - len(bedrock_mcp_service.mcp_tools),
+                'model_used': bedrock_service.model_id,
+                'tools_used': [tool.name for tool in bedrock_service.tools],
+                'tools_count': len(bedrock_service.tools),
                 'history': updated_history,
                 'history_length': len(updated_history),
                 'audio_file': audio_result['filename'],
@@ -159,12 +150,12 @@ def lambda_handler(event, context=None):
         }
     
     except Exception as e:
-        logger.error(f'[ERROR] {e}')
+        print(f'[ERROR] {e}')
         return {
             'statusCode': 500,
             'body': {
                 'error': str(e),
-                'message': 'Error processing user query with MCP'
+                'message': 'Error processing user query'
             }
         }
 
@@ -172,14 +163,13 @@ def lambda_handler(event, context=None):
 # Main execution
 # ----------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("🤖 MCP Handler Function Demo - Simplified Architecture")
-    print("Architecture: MCPLangChainWorkflow + MCPLangChainCore")
+    print("🤖 Lambda Handler Function Demo - Simplified Architecture")
+    print("Architecture: LangChainWorkflow + LangChainCore")
     print("=" * 70)
     
     try:
         # Define test queries
         test_queries = [
-            "Qual o endereço do CEP 79081-120?",
             "How many times does the letter 'e' appear in the word 'elephant'?",
             "Hello! How are you?",
             "Count how many words are in the sentence 'The cat climbed on the roof'",
@@ -187,14 +177,14 @@ if __name__ == "__main__":
         ]
         
         test_descriptions = [
-            "Character counting (simplified MCP workflow)",
-            "Simple question (tests MCPLangChainCore integration)", 
-            "Word counting (tests MCP workflow orchestration)",
-            "Math calculation (tests MCP auto-discovery)"
+            "Character counting (simplified workflow)",
+            "Simple question (tests LangChainCore integration)", 
+            "Word counting (tests workflow orchestration)",
+            "Math calculation (tests auto-discovery)"
         ]
         
-        print("=== 🎮 Testing Simplified MCP Architecture ===")
-        print("Architecture: MCPLangChainWorkflow (controller) + MCPLangChainCore (services)")
+        print("=== 🎮 Testing Simplified LangChain Architecture ===")
+        print("Architecture: LangChainWorkflow (controller) + LangChainCore (services)")
         
         # Execute tests
         for i, query in enumerate(test_queries, 1):
@@ -209,20 +199,20 @@ if __name__ == "__main__":
             
             if response['statusCode'] == 200:
                 print(f"✅ Success!")
-                print(f"🔧 MCP Tools: {response['body']['mcp_tools_used']}")
-                print(f"📊 Total tools: {response['body']['total_tools']}")
+                print(f"🔧 Tools used: {response['body']['tools_used']}")
+                print(f"📊 Tools count: {response['body']['tools_count']}")
                 if i == 1:
-                    print(f"🎯 MCP tools count: {response['body']['mcp_tools_count']}")
+                    print(f"🎯 Model used: {response['body']['model_used']}")
                 elif i == 4:
                     print(f"📊 Response: {response['body']['response']}")
+                    print(f"🎵 Audio file: {response['body']['audio_file']}")
             else:
                 print(f"❌ Error: {response['body']['error']}")
             
             if i < len(test_queries):
                 print("\n" + "-"*60)
         
-        print("\n🎉 All MCP tests completed with simplified architecture!")
+        print("\n🎉 All tests completed with simplified architecture!")
         
     except Exception as e:
-        logger.error(f"Erro durante a execução do demo: {e}")
-        print(f"\n❌ Erro: {e}")
+        print(f"\n❌ Erro durante a execução do demo: {e}")
