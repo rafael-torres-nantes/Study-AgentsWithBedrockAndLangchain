@@ -232,6 +232,9 @@ LangChain-Bedrock/
 ├── 📁 controller/
 │   ├── 📄 langchain_workflow.py       # Controller tradicional
 │   └── 📄 mcp_langchain_workflow.py   # Controller MCP
+├── 📁 docs/                           # 📚 Documentação detalhada
+│   ├── 📄 create_tools.md             # Guia para criar novas tools
+│   └── 📄 templates-examples.md       # Templates e exemplos práticos
 ├── 📁 services/
 │   ├── 📄 langchain_core.py           # Core services tradicional
 │   ├── 📄 mcp_langchain_core.py       # Core services MCP
@@ -240,7 +243,11 @@ LangChain-Bedrock/
 │   └── 📄 amazon_nova_pro.py          # Configuração do modelo Nova Pro
 ├── 📁 tools/
 │   ├── 📄 text_analysis_tool.py       # Ferramentas tradicionais
-│   ├── 📄 mcp_tools_server.py         # Servidor MCP de ferramentas
+│   ├── 📄 mcp_tools_server.py         # Servidor MCP (modular)
+│   ├── 📄 mcp_base.py                 # Classes base MCP
+│   ├── 📄 text_tools.py               # Tools de texto
+│   ├── 📄 utility_tools.py            # Tools utilitárias
+│   ├── 📄 tool_wrappers.py            # Wrappers para integração
 │   └── 📄 tool_loader.py              # Carregador de ferramentas
 ├── 📁 templates/
 │   ├── 📄 prompt_template.py          # Templates de prompt principais
@@ -361,6 +368,36 @@ Durante o desenvolvimento do projeto, algumas dificuldades foram enfrentadas:
 - **Processamento de Respostas**: Desenvolvimento do `ResponseProcessor` para lidar com diferentes formatos de resposta do Bedrock
 - **Síntese de Voz**: Integração com Amazon Polly via `TTSPollyService` para conversão texto-para-fala em tempo real
 - **Comparação de Arquiteturas**: Manutenção de duas implementações paralelas (tradicional vs MCP) para demonstrar benefícios de cada abordagem
+
+---
+
+## 📚 Documentação Adicional
+
+Para desenvolvedores que desejam **criar novas tools** ou estender o sistema:
+
+### 🛠️ Guias para Desenvolvedores
+
+- **[📖 Guia Completo para Criar Tools](./docs/README.md)** - Tutorial detalhado com exemplos
+- **[🔧 Templates e Exemplos](./docs/templates-examples.md)** - Templates prontos e casos práticos
+
+### 🎯 O que você encontrará na documentação:
+
+- **🏗️ Arquitetura Overview**: Como o sistema modular funciona
+- **🚀 Quick Start**: Crie sua primeira tool em minutos
+- **💡 Exemplos Práticos**: Tools de análise de URLs, processamento de dados, QR codes
+- **📝 Templates Prontos**: Código base para diferentes tipos de tools
+- **🧪 Scripts de Teste**: Ferramentas para validar suas tools
+- **📚 Boas Práticas**: Convenções e padrões recomendados
+
+### 🔧 Para adicionar uma nova tool:
+
+1. Escolha o módulo apropriado ou crie um novo
+2. Herde de `MCPToolBase` 
+3. Implemente `execute()` com sua lógica
+4. Registre no `mcp_tools_server.py`
+5. Teste usando os scripts fornecidos
+
+**A arquitetura modular torna muito fácil expandir as funcionalidades do assistente!** 🚀
 - **Configuração AWS**: Gerenciamento de credenciais e permissões para múltiplos serviços AWS (Bedrock, Polly, Lambda)
 
 **Soluções implementadas:**
