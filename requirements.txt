@@ -1,8 +1,43 @@
-boto3
-langchain
-langchain-aws
-python-dotenv
-pandas
-mcp
-fastapi
-uvicorn
+# AWS Lambda - AI Virtual Assistant Requirements
+# Core Dependencies
+
+# AWS Lambda Runtime Interface Client
+awslambdaric>=2.0.0
+
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
+
+# LangChain ecosystem
+langchain>=0.1.0,<0.3.0
+langchain-aws>=0.1.0,<0.3.0
+langchain-community>=0.0.20,<0.3.0
+
+# HTTP requests
+requests>=2.31.0,<3.0.0
+urllib3>=2.0.0,<3.0.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# JSON processing
+pydantic>=2.0.0,<3.0.0
+
+# Audio processing (for TTS)
+pydub>=0.25.1
+
+# Model Context Protocol (MCP) - Lambda compatible approach
+# Using a minimal implementation to avoid pywin32 dependencies
+# Note: Will implement a mock FastMCP class for Lambda compatibility
+
+# Utilities
+typing-extensions>=4.8.0
+dataclasses-json>=0.6.0
+
+# Pin numpy to a Lambda-compatible version
+numpy>=1.24.0,<2.0.0
+
+# Nota: pandas e openpyxl foram removidos temporariamente devido a problemas de compatibilidade
+# A função generate-analysis pode funcionar sem essas dependências se os serviços não dependerem delas
+pandas>=2.1.3
+openpyxl>=3.1.2
