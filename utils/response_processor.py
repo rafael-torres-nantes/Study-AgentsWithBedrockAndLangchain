@@ -48,7 +48,7 @@ class ResponseProcessor:
     @staticmethod
     def _convert_to_string(response: Union[str, bytes, list, dict]) -> str:
         """
-        Converte resposta para string
+        Converte resposta para string, com tratamento especial para Amazon Nova Pro
         
         Args:
             response: Resposta em qualquer formato
@@ -63,9 +63,14 @@ class ResponseProcessor:
         
         elif isinstance(response, list):
             # Se é uma lista de dicts do Bedrock, processa cada item
-            if response and isinstance(response[0], dict) and 'text' in response[0]:
-                # Extrai o texto da resposta do Bedrock
-                return response[0].get('text', str(response))
+            if response and isinstance(response[0], dict):
+                # Tratamento especial para Amazon Nova Pro format
+                if 'text' in response[0]:
+                    return response[0].get('text', str(response))
+                
+                # Se tem type e text (formato nova pro)
+                elif 'type' in response[0] and response[0].get('type') == 'text':
+                    return response[0].get('text', str(response))
             return str(response)
         
         elif isinstance(response, dict):
@@ -196,3 +201,42 @@ def process_response(response: Union[str, bytes, list, dict]) -> Dict[str, Any]:
         Dict[str, Any]: Resposta processada
     """
     return ResponseProcessor.process_bedrock_response(response)
+
+
+def extract_clean_response(response_json: Union[str, dict]) -> Dict[str, Any]:
+    """
+    Extrai uma resposta limpa e formatada do JSON de resposta do modelo.
+    
+    Args:
+        response_json (dict): JSON de resposta processado
+        
+    Returns:
+        dict: Resposta formatada de forma limpa
+    """
+    try:
+        # Tenta extrair a resposta do campo 'resposta' 
+        if isinstance(response_json, dict) and 'resposta' in response_json:
+            return {
+                "output_response": response_json['resposta']
+            }
+        # Tenta extrair de 'message' se 'resposta' não existir
+        elif isinstance(response_json, dict) and 'message' in response_json:
+            return {
+                "output_response": response_json['message']
+            }
+        # Se for string diretamente
+        elif isinstance(response_json, str):
+            return {
+                "output_response": response_json
+            }
+        # Fallback para estrutura complexa
+        else:
+            return {
+                "output_response": str(response_json),
+                "note": "Complex response structure converted to string"
+            }
+    except Exception as e:
+        return {
+            "output_response": "Error processing response",
+            "error": str(e)
+        }
