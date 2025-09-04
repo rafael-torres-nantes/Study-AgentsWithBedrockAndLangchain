@@ -15,7 +15,8 @@ Collecting workspace information# Assistente Virtual Inteligente - LangChain + A
 * 🔀 Arquitetura da aplicação
 * 📁 Estrutura do projeto
 * 📌 Como executar o projeto
-* 🕵️ Dificuldades Encontradas
+* � Formato JSON para Requests
+* �🕵️ Dificuldades Encontradas
 
 ## 📚 Contextualização do projeto
 
@@ -359,7 +360,153 @@ zip -r lambda-mcp.zip . -x "*.git*" "*.env" "__pycache__/*" "tmp/*"
 }
 ```
 
-## 🕵️ Dificuldades Encontradas
+## � Formato JSON para Requests
+
+### 🔄 Request Básico (Sem Histórico)
+```json
+{
+  "query": "Sua pergunta aqui",
+  "history": []
+}
+```
+
+### 💬 Request com Histórico de Conversação
+```json
+{
+  "query": "Nova pergunta baseada no contexto anterior",
+  "history": [
+    {
+      "role": "user",
+      "content": "Pergunta anterior do usuário"
+    },
+    {
+      "role": "assistant", 
+      "content": "Resposta anterior do assistente"
+    }
+  ],
+  "voice_id": "Joanna",
+  "output_format": "mp3",
+  "speed": "medium",
+  "use_neural": false
+}
+```
+
+### 📝 Exemplo Prático: Conversa em Múltiplas Etapas
+
+#### 1️⃣ Primeira Mensagem (sem histórico):
+```json
+{
+  "query": "Olá! Como você está?",
+  "history": []
+}
+```
+
+#### 2️⃣ Segunda Mensagem (com histórico da primeira):
+```json
+{
+  "query": "Você pode me ajudar com análise de texto?",
+  "history": [
+    {
+      "role": "user",
+      "content": "Olá! Como você está?"
+    },
+    {
+      "role": "assistant", 
+      "content": "Olá! Eu sou uma assistente virtual..."
+    }
+  ]
+}
+```
+
+#### 3️⃣ Terceira Mensagem (com histórico completo):
+```json
+{
+  "query": "Conte as palavras na frase 'O gato subiu no telhado'",
+  "history": [
+    {
+      "role": "user",
+      "content": "Olá! Como você está?"
+    },
+    {
+      "role": "assistant",
+      "content": "Olá! Eu sou uma assistente virtual..."
+    },
+    {
+      "role": "user", 
+      "content": "Você pode me ajudar com análise de texto?"
+    },
+    {
+      "role": "assistant",
+      "content": "Claro! Posso ajudar com diferentes tipos..."
+    }
+  ]
+}
+```
+
+### 🎛️ Parâmetros Disponíveis
+
+| Parâmetro | Tipo | Obrigatório | Padrão | Descrição |
+|-----------|------|-------------|---------|-----------|
+| `query` | string | ✅ Sim | - | Pergunta/comando para o assistente |
+| `history` | array | ❌ Não | `[]` | Histórico da conversa (mensagens anteriores) |
+| `voice_id` | string | ❌ Não | `"Joanna"` | Voz para síntese de fala (TTS) |
+| `output_format` | string | ❌ Não | `"mp3"` | Formato do áudio: `mp3`, `wav`, `ogg_vorbis` |
+| `speed` | string | ❌ Não | `"medium"` | Velocidade: `x-slow`, `slow`, `medium`, `fast`, `x-fast` |
+| `use_neural` | boolean | ❌ Não | `true` | Usar engine neural (melhor qualidade) |
+
+### 📤 Formato da Resposta
+
+```json
+{
+  "statusCode": 200,
+  "body": {
+    "message": "Query processed successfully",
+    "response": {
+      "output_response": "A resposta clara e direta do modelo"
+    },
+    "model_used": "us.amazon.nova-pro-v1:0",
+    "mcp_tools_used": ["contador_caracteres", "analisar_texto"],
+    "total_tools": 8,
+    "history": [
+      {
+        "role": "user",
+        "content": "Sua pergunta"
+      },
+      {
+        "role": "assistant", 
+        "content": "A resposta do assistente"
+      }
+    ],
+    "history_length": 2,
+    "audio_file": "tts_audio_1756979295673.mp3",
+    "audio_duration": 2.5
+  }
+}
+```
+
+### 🧪 Como Testar com Histórico
+
+Use o arquivo `test_with_history.py` incluído no projeto:
+
+```bash
+python test_with_history.py
+```
+
+Este arquivo demonstra:
+- ✅ Conversa progressiva com histórico acumulativo
+- ✅ Request único com histórico pré-definido  
+- ✅ Preservação de contexto entre mensagens
+- ✅ Uso correto das ferramentas MCP
+
+### 🎯 Dicas Importantes
+
+- 🔄 **Contexto**: O histórico preserva o contexto da conversa
+- 🛠️ **Ferramentas**: O assistente escolhe automaticamente as ferramentas certas
+- 🎵 **TTS**: Cada resposta gera um arquivo de áudio
+- 🧠 **Memória**: O modelo "lembra" de conversas anteriores através do histórico
+- ⚡ **Performance**: Históricos muito longos podem impactar a performance
+
+## �🕵️ Dificuldades Encontradas
 
 Durante o desenvolvimento do projeto, algumas dificuldades foram enfrentadas:
 
