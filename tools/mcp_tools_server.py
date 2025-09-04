@@ -5,7 +5,14 @@ Arquitetura refatorada com separação de responsabilidades e código limpo.
 
 import logging
 from typing import List, Callable, Dict, Any
-from mcp.server.fastmcp import FastMCP
+
+# Lambda-compatible FastMCP implementation
+try:
+    from mcp.server.fastmcp import FastMCP
+    print("Using original FastMCP implementation")
+except ImportError:
+    from .lambda_fastmcp import FastMCP
+    print("Using Lambda-compatible FastMCP implementation")
 
 # Importa todas as tools dos módulos especializados
 from .text_tools import (
