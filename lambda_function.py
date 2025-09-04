@@ -5,7 +5,6 @@ import logging
 # Import service classes para MCP Handler Function - SIMPLIFIED ARCHITECTURE
 from services.mcp_langchain_core import MCPLangChainCore
 from controller.mcp_langchain_workflow import MCPLangChainWorkflow
-from services.polly_services import TTSPollyService
 
 # Import utilities
 from utils.response_processor import ResponseProcessor, process_response, extract_clean_response 
@@ -157,33 +156,10 @@ def lambda_handler(event, context=None):
         print(f'        - Speed: {speed}')
         print(f'        - Neural Engine: {use_neural}')
 
-        # 16 - Initialize TTS service with custom temporary directory and correct region
-        tts_service = TTSPollyService(region_name='us-east-1', output_dir=TMP_DIR)
-        print(f'[DEBUG] TTS service successfully initialized for region: US-EAST-1')
-
         # 16 - Extract text for TTS from response
         tts_text = response_json.get('resposta', response_json.get('message', 'No response available'))
 
-        # 17 - Convert text to speech
-        audio_result = tts_service.text_to_speech(
-            text=tts_text,
-            voice_id=voice_id,
-            output_format=output_format,
-            speed=speed,
-            use_neural=use_neural
-        )
-        
-        # 18 - Check if conversion was successful
-        if not audio_result['success']:
-            raise Exception(f"TTS conversion error: {audio_result['error']}")
-        
-        print(f'[DEBUG] TTS conversion completed successfully:')
-        print(f'        - File: {audio_result["filename"]}')
-        print(f'        - Size: {audio_result["file_size_mb"]} MB')
-        print(f'        - Duration: {audio_result["duration"]} seconds')
-        print(f'        - Processing time: {audio_result["processing_time"]} seconds')
-
-        # 19 - Prepare response based on event source
+        # 17 - Prepare response based on event source
         response_body = {
             'message': 'Query processed successfully by simplified MCP workflow.',
             'response': response_json,
@@ -193,9 +169,7 @@ def lambda_handler(event, context=None):
             'mcp_tools_count': len(mcp_tools_info),
             'custom_tools_count': len(bedrock_mcp_service.tools) - len(bedrock_mcp_service.mcp_tools),
             'history': updated_history,
-            'history_length': len(updated_history),
-            'audio_file': audio_result['filename'],
-            'audio_duration': audio_result['duration']
+            'history_length': len(updated_history)
         }
 
         # Return appropriate format based on event source

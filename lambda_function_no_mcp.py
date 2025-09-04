@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 # Import service classes needed for Lambda Function
 from services.langchain_core import LangChainCore
 from controller.langchain_workflow import LangChainWorkflow
-from services.polly_services import TTSPollyService
 
 # Import tools from tools/ directory (without using __init__.py)
 from tools.tool_loader import get_all_tools
@@ -15,7 +14,6 @@ from utils.response_processor import ResponseProcessor, process_response
 
 # Import template classes for LLM
 from templates.prompt_template import PromptTemplate
-from templates.template_test_tools import PromptTemplate as TriviaPromptTemplate
 
 load_dotenv()
 
@@ -60,7 +58,7 @@ def lambda_handler(event, context):
         print(f'[DEBUG] History length: {len(conversation_history)}')
 
         # 5 - Define template for LLM
-        prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
+        prompt_template = PromptTemplate(user_query=user_query).get_prompt_text()
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
         # 6 - Initialize Bedrock workflow with LangChain (replaces old agent)
@@ -107,33 +105,7 @@ def lambda_handler(event, context):
         print(f'        - Speed: {speed}')
         print(f'        - Neural Engine: {use_neural}')
 
-        # 15 - Initialize TTS service with custom temporary directory
-        tts_service = TTSPollyService(output_dir=TMP_DIR)
-        print(f'[DEBUG] TTS service successfully initialized')
-
-        # 16 - Extract text for TTS from response
-        tts_text = response_json.get('resposta', response_json.get('message', 'No response available'))
-
-        # 17 - Convert text to speech
-        audio_result = tts_service.text_to_speech(
-            text=tts_text,
-            voice_id=voice_id,
-            output_format=output_format,
-            speed=speed,
-            use_neural=use_neural
-        )
-        
-        # 18 - Check if conversion was successful
-        if not audio_result['success']:
-            raise Exception(f"TTS conversion error: {audio_result['error']}")
-        
-        print(f'[DEBUG] TTS conversion completed successfully:')
-        print(f'        - File: {audio_result["filename"]}')
-        print(f'        - Size: {audio_result["file_size_mb"]} MB')
-        print(f'        - Duration: {audio_result["duration"]} seconds')
-        print(f'        - Processing time: {audio_result["processing_time"]} seconds')
-
-        # 19 - Prepare Lambda response with enhanced information
+        # 15 - Prepare Lambda response with enhanced information
         return {
             'statusCode': 200,
             'body': {
@@ -143,9 +115,7 @@ def lambda_handler(event, context):
                 'tools_used': [tool.name for tool in bedrock_service.tools],
                 'tools_count': len(bedrock_service.tools),
                 'history': updated_history,
-                'history_length': len(updated_history),
-                'audio_file': audio_result['filename'],
-                'audio_duration': audio_result['duration']
+                'history_length': len(updated_history)
             },
         }
     
