@@ -6,7 +6,6 @@ Versão simplificada usando MCPLangChainWorkflow + MCPLangChainCore
 import os
 import json
 import logging
-from dotenv import load_dotenv
 
 # Import service classes para MCP Handler Function - SIMPLIFIED ARCHITECTURE
 from services.mcp_langchain_core import MCPLangChainCore
@@ -20,14 +19,18 @@ from utils.response_processor import ResponseProcessor, process_response
 from templates.prompt_template import PromptTemplate
 from templates.template_test_tools import PromptTemplate as TriviaPromptTemplate
 
-load_dotenv()
-
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from dotenv import load_dotenv
+load_dotenv()
+
+# Get AWS region from environment variables (Lambda runtime provides this)
+AWS_REGION = os.getenv('AWS_REGION', 'us-east-2')
+
 # Get temporary directory from .env file
-TMP_DIR = os.getenv('TMP_DIR', './tmp')
+TMP_DIR = os.getenv('TMP_DIR', '/tmp/')
 
 # ============================================================================
 # MCP Handler Function for Bedrock model inference using LangChain + MCP
@@ -39,8 +42,10 @@ def lambda_handler(event, context=None):
     Uses MCPLangChainWorkflow (controller) which integrates MCPLangChainCore for
     streamlined MCP agent execution with automatic tool discovery and loading.
     
+    Supports both direct invocation and API Gateway events.
+    
     Args:
-        event: Event containing user query and parameters
+        event: Event containing user query and parameters (direct or API Gateway format)
         context: Handler context (similar to Lambda context)
         
     Returns:
@@ -56,9 +61,53 @@ def lambda_handler(event, context=None):
     print(f'[DEBUG] Temporary directory configured: {TMP_DIR}')
    
     try:
-        # 3 - Extract event parameters
-        user_query = event.get('query', '')
-        conversation_history = event.get('history', [])
+        # 3 - Parse event based on source (API Gateway or direct invocation)
+        if 'httpMethod' in event:
+            # API Gateway event
+            print('[DEBUG] Detected API Gateway event')
+            
+            # Handle health check
+            if event.get('path') == '/health' and event.get('httpMethod') == 'GET':
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                    },
+                    'body': json.dumps({
+                        'status': 'healthy',
+                        'message': 'AI Virtual Assistant is running',
+                        'timestamp': context.aws_request_id if context else 'local-test'
+                    })
+                }
+            
+            # Parse JSON body for assistant endpoint
+            if event.get('body'):
+                try:
+                    body = json.loads(event['body'])
+                except json.JSONDecodeError:
+                    raise ValueError("Invalid JSON in request body")
+            else:
+                raise ValueError("Request body is required")
+                
+            user_query = body.get('query', '')
+            conversation_history = body.get('history', [])
+            voice_id = body.get('voice_id', 'Joanna')
+            output_format = body.get('output_format', 'mp3')
+            speed = body.get('speed', 'medium')
+            use_neural = body.get('use_neural', True)
+            
+        else:
+            # Direct invocation event
+            print('[DEBUG] Detected direct invocation event')
+            user_query = event.get('query', '')
+            conversation_history = event.get('history', [])
+            voice_id = event.get('voice_id', 'Joanna')
+            output_format = event.get('output_format', 'mp3')
+            speed = event.get('speed', 'medium')
+            use_neural = event.get('use_neural', True)
         
         # 4 - Validate user query
         if not user_query:
@@ -71,7 +120,8 @@ def lambda_handler(event, context=None):
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
         # 6 - Initialize Bedrock MCP workflow with LangChain (simplified architecture)
-        bedrock_mcp_service = MCPLangChainWorkflow(auto_load_mcp=True)
+        print(f'[DEBUG] Using AWS region: {AWS_REGION}')
+        bedrock_mcp_service = MCPLangChainWorkflow(region=AWS_REGION, auto_load_mcp=True)
         
         # 7 - MCP tools are automatically loaded by MCPLangChainWorkflow
         mcp_tools_info = bedrock_mcp_service.get_mcp_tools_info()
@@ -102,21 +152,16 @@ def lambda_handler(event, context=None):
         # 13 - Get updated conversation history
         updated_history = bedrock_mcp_service.get_conversation_history()
 
-        # 14 - Get optional TTS parameters with default values
-        voice_id = event.get('voice_id', 'Joanna')
-        output_format = event.get('output_format', 'mp3')
-        speed = event.get('speed', 'medium')
-        use_neural = event.get('use_neural', True)
-        
+        # 14 - Get optional TTS parameters (already parsed above)
         print(f'[DEBUG] TTS parameters configured:')
         print(f'        - Voice ID: {voice_id}')
         print(f'        - Format: {output_format}')
         print(f'        - Speed: {speed}')
         print(f'        - Neural Engine: {use_neural}')
 
-        # 15 - Initialize TTS service with custom temporary directory
-        tts_service = TTSPollyService(output_dir=TMP_DIR)
-        print(f'[DEBUG] TTS service successfully initialized')
+        # 15 - Initialize TTS service with custom temporary directory and correct region
+        tts_service = TTSPollyService(region_name='us-east-1', output_dir=TMP_DIR)
+        print(f'[DEBUG] TTS service successfully initialized for region: US-EAST-1')
 
         # 16 - Extract text for TTS from response
         tts_text = response_json.get('resposta', response_json.get('message', 'No response available'))
@@ -140,33 +185,67 @@ def lambda_handler(event, context=None):
         print(f'        - Duration: {audio_result["duration"]} seconds')
         print(f'        - Processing time: {audio_result["processing_time"]} seconds')
 
-        # 19 - Prepare MCP Handler response with enhanced information
-        return {
-            'statusCode': 200,
-            'body': {
-                'message': 'Query processed successfully by simplified MCP workflow.',
-                'response': response_json,
-                'model_used': bedrock_mcp_service.model_id,
-                'mcp_tools_used': [tool["name"] for tool in mcp_tools_info],
-                'total_tools': len(bedrock_mcp_service.get_available_tools()),
-                'mcp_tools_count': len(mcp_tools_info),
-                'custom_tools_count': len(bedrock_mcp_service.tools) - len(bedrock_mcp_service.mcp_tools),
-                'history': updated_history,
-                'history_length': len(updated_history),
-                'audio_file': audio_result['filename'],
-                'audio_duration': audio_result['duration']
-            },
+        # 19 - Prepare response based on event source
+        response_body = {
+            'message': 'Query processed successfully by simplified MCP workflow.',
+            'response': response_json,
+            'model_used': bedrock_mcp_service.model_id,
+            'mcp_tools_used': [tool["name"] for tool in mcp_tools_info],
+            'total_tools': len(bedrock_mcp_service.get_available_tools()),
+            'mcp_tools_count': len(mcp_tools_info),
+            'custom_tools_count': len(bedrock_mcp_service.tools) - len(bedrock_mcp_service.mcp_tools),
+            'history': updated_history,
+            'history_length': len(updated_history),
+            'audio_file': audio_result['filename'],
+            'audio_duration': audio_result['duration']
         }
+
+        # Return appropriate format based on event source
+        if 'httpMethod' in event:
+            # API Gateway response format
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                },
+                'body': json.dumps(response_body)
+            }
+        else:
+            # Direct invocation response format
+            return {
+                'statusCode': 200,
+                'body': response_body
+            }
     
     except Exception as e:
         logger.error(f'[ERROR] {e}')
-        return {
-            'statusCode': 500,
-            'body': {
-                'error': str(e),
-                'message': 'Error processing user query with MCP'
-            }
+        
+        error_response = {
+            'error': str(e),
+            'message': 'Error processing user query with MCP'
         }
+        
+        if 'httpMethod' in event:
+            # API Gateway error response
+            return {
+                'statusCode': 500,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                },
+                'body': json.dumps(error_response)
+            }
+        else:
+            # Direct invocation error response
+            return {
+                'statusCode': 500,
+                'body': error_response
+            }
 
 # ============================================================================
 # Main execution
