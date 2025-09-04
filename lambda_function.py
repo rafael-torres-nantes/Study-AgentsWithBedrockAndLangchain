@@ -1,8 +1,3 @@
-"""
-Exemplo de função handler usando sistema LangChain refatorado com MCP (Model Context Protocol)
-Estrutura similar ao lambda_function.py para comparação de melhores práticas
-Versão simplificada usando MCPLangChainWorkflow + MCPLangChainCore
-"""
 import os
 import json
 import logging
@@ -13,7 +8,7 @@ from controller.mcp_langchain_workflow import MCPLangChainWorkflow
 from services.polly_services import TTSPollyService
 
 # Import utilities
-from utils.response_processor import ResponseProcessor, process_response 
+from utils.response_processor import ResponseProcessor, process_response, extract_clean_response 
 
 # Import template classes for LLM
 from templates.prompt_template import PromptTemplate
@@ -144,22 +139,26 @@ def lambda_handler(event, context=None):
         
         # 11 - Perform inference using MCP agent
         response = bedrock_mcp_service.invoke_agent(user_query)
-        print(f'[DEBUG] Bedrock MCP response: {response}') 
-
+        
         # 12 - Process agent response using utility
         response_json = process_response(response)
+        
+        # 13 - Display clean output response
+        clean_output = extract_clean_response(response_json)
+        print(f'[DEBUG] Clean output response:')
+        print(f'{clean_output}')
 
-        # 13 - Get updated conversation history
+        # 14 - Get updated conversation history
         updated_history = bedrock_mcp_service.get_conversation_history()
 
-        # 14 - Get optional TTS parameters (already parsed above)
+        # 15 - Get optional TTS parameters (already parsed above)
         print(f'[DEBUG] TTS parameters configured:')
         print(f'        - Voice ID: {voice_id}')
         print(f'        - Format: {output_format}')
         print(f'        - Speed: {speed}')
         print(f'        - Neural Engine: {use_neural}')
 
-        # 15 - Initialize TTS service with custom temporary directory and correct region
+        # 16 - Initialize TTS service with custom temporary directory and correct region
         tts_service = TTSPollyService(region_name='us-east-1', output_dir=TMP_DIR)
         print(f'[DEBUG] TTS service successfully initialized for region: US-EAST-1')
 
@@ -269,7 +268,8 @@ if __name__ == "__main__":
             "Character counting (simplified MCP workflow)",
             "Simple question (tests MCPLangChainCore integration)", 
             "Word counting (tests MCP workflow orchestration)",
-            "Math calculation (tests MCP auto-discovery)"
+            "Math calculation (tests MCP auto-discovery)",
+            "Math calculation (tests calculadora_basica tool)"
         ]
         
         print("=== 🎮 Testing Simplified MCP Architecture ===")
