@@ -1,6 +1,5 @@
 import os
-from dotenv import load_dotenv
-from langchain_aws import ChatBedrock
+from langchain_aws import ChatBedrock, ChatBedrockConverse
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.schema import HumanMessage, AIMessage, SystemMessage
@@ -41,11 +40,7 @@ class MCPLangChainCore:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.top_p = top_p
-        
-        # Carrega variáveis de ambiente
-        if load_env:
-            load_dotenv()
-        
+                
         # Logger
         self.logger = logging.getLogger(__name__)
         
@@ -62,20 +57,36 @@ class MCPLangChainCore:
         # Define região AWS
         os.environ['AWS_REGION'] = self.region
     
-    def _initialize_model(self) -> ChatBedrock:
+    def _initialize_model(self):
         """Inicializa o modelo ChatBedrock com as configurações especificadas."""
-        model_kwargs = {'temperature': self.temperature}
         
-        if self.max_tokens is not None:
-            model_kwargs['max_tokens'] = self.max_tokens
-        if self.top_p is not None:
-            model_kwargs['top_p'] = self.top_p
-        
-        return ChatBedrock(
-            model_id=self.model_id, 
-            model_kwargs=model_kwargs, 
-            region_name=self.region
-        )
+        # Configurações específicas para Amazon Nova
+        if 'nova' in self.model_id.lower():
+            # Para Amazon Nova, usar ChatBedrockConverse para resolver problema com tools
+            return ChatBedrockConverse(
+                model=self.model_id, 
+                region_name=self.region,
+                temperature = 0.7 if self.temperature == 0.0 else self.temperature,
+                max_tokens = 2048 if self.max_tokens is None else self.max_tokens,
+                top_p = 0.9 if self.top_p is None else self.top_p
+            )
+        else:
+            # Para outros modelos, usar configuração padrão ChatBedrock
+            model_kwargs = {
+                'temperature': self.temperature
+            }
+            
+            if self.max_tokens is not None:
+                model_kwargs['max_tokens'] = self.max_tokens
+            if self.top_p is not None:
+                model_kwargs['top_p'] = self.top_p
+                
+            return ChatBedrock(
+                model_id=self.model_id, 
+                model_kwargs=model_kwargs, 
+                region_name=self.region,
+                streaming=True
+            )
     
     # ===============================
     # MÉTODOS DE INFERÊNCIA SIMPLES - Base para MCP integration
