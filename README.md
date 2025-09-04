@@ -23,11 +23,11 @@ Collecting workspace information# Assistente Virtual Inteligente - LangChain + A
 O projeto consiste em um **assistente virtual inteligente** que utiliza **AWS Bedrock** com modelos de IA generativa (Amazon Nova Pro) integrado ao framework **LangChain** para criar agentes conversacionais com capacidade de usar ferramentas especializadas. O sistema oferece duas arquiteturas distintas: uma tradicional e outra baseada em **MCP (Model Context Protocol)** para demonstrar diferentes abordagens de implementação de agentes IA.
 
 O assistente é capaz de:
+O assistente é capaz de:
 - **Análise de texto** (contagem de caracteres, palavras, conversões)
 - **Cálculos matemáticos** básicos e avançados
 - **Análise de sentimento** e extração de informações
 - **Conversação natural** com preservação de contexto
-- **Síntese de voz** usando Amazon Polly
 - **Gerenciamento de ferramentas** automático via MCP
 
 ## 🛠️ Tecnologias/Ferramentas utilizadas
@@ -36,7 +36,6 @@ O assistente é capaz de:
 [<img src="https://img.shields.io/badge/AWS-Bedrock-FF9900?logo=amazonaws&logoColor=white">](https://aws.amazon.com/bedrock/)
 [<img src="https://img.shields.io/badge/LangChain-005C84?logo=python&logoColor=white">](https://langchain.com/)
 [<img src="https://img.shields.io/badge/Amazon-Nova_Pro-FF9900?logo=amazonaws&logoColor=white">](https://aws.amazon.com/bedrock/)
-[<img src="https://img.shields.io/badge/Amazon-Polly-FF9900?logo=amazonaws&logoColor=white">](https://aws.amazon.com/polly/)
 [<img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">](https://fastapi.tiangolo.com/)
 [<img src="https://img.shields.io/badge/MCP-Model_Context_Protocol-4A90E2?logo=python&logoColor=white">](https://modelcontextprotocol.io/)
 [<img src="https://img.shields.io/badge/Boto3-0073BB?logo=amazonaws&logoColor=white">](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
@@ -217,7 +216,6 @@ O sistema utiliza uma arquitetura baseada em **agentes inteligentes** com duas i
 2. **Controllers**: `LangChainWorkflow` e `MCPLangChainWorkflow`
 3. **Core Services**: `LangChainCore` e `MCPLangChainCore`
 4. **Tools**: `text_analysis_tool.py` e `mcp_tools_server.py`
-5. **TTS Service**: `polly_services.py`
 6. **Response Processing**: `response_processor.py`
 
 ## 📁 Estrutura do projeto
@@ -337,10 +335,7 @@ zip -r lambda-mcp.zip . -x "*.git*" "*.env" "__pycache__/*" "tmp/*"
 ```json
 {
     "query": "Count how many times the letter 'e' appears in the word 'elephant'",
-    "voice_id": "Joanna",
-    "output_format": "mp3",
-    "speed": "medium",
-    "use_neural": true,
+  // ...outros parâmetros opcionais...
     "history": []
 }
 ```
@@ -354,7 +349,7 @@ zip -r lambda-mcp.zip . -x "*.git*" "*.env" "__pycache__/*" "tmp/*"
         "response": {"resposta": "The letter 'e' appears 2 times in the word 'elephant'"},
         "model_used": "amazon.nova-pro-v1:0",
         "tools_used": ["contador_caracteres"],
-        "audio_file": "tts_audio_1756807342372.mp3",
+  // ...outros campos de resposta...
         "architecture": "LangChainWorkflow + LangChainCore"
     }
 }
@@ -449,10 +444,7 @@ zip -r lambda-mcp.zip . -x "*.git*" "*.env" "__pycache__/*" "tmp/*"
 |-----------|------|-------------|---------|-----------|
 | `query` | string | ✅ Sim | - | Pergunta/comando para o assistente |
 | `history` | array | ❌ Não | `[]` | Histórico da conversa (mensagens anteriores) |
-| `voice_id` | string | ❌ Não | `"Joanna"` | Voz para síntese de fala (TTS) |
-| `output_format` | string | ❌ Não | `"mp3"` | Formato do áudio: `mp3`, `wav`, `ogg_vorbis` |
-| `speed` | string | ❌ Não | `"medium"` | Velocidade: `x-slow`, `slow`, `medium`, `fast`, `x-fast` |
-| `use_neural` | boolean | ❌ Não | `true` | Usar engine neural (melhor qualidade) |
+// Parâmetros relacionados a TTS removidos
 
 ### 📤 Formato da Resposta
 
@@ -478,8 +470,7 @@ zip -r lambda-mcp.zip . -x "*.git*" "*.env" "__pycache__/*" "tmp/*"
       }
     ],
     "history_length": 2,
-    "audio_file": "tts_audio_1756979295673.mp3",
-    "audio_duration": 2.5
+  // ...outros campos de resposta...
   }
 }
 ```
@@ -494,7 +485,7 @@ python test_with_history.py
 
 Este arquivo demonstra:
 - ✅ Conversa progressiva com histórico acumulativo
-- ✅ Request único com histórico pré-definido  
+- ✅ Request único com histórico pré-definido
 - ✅ Preservação de contexto entre mensagens
 - ✅ Uso correto das ferramentas MCP
 
@@ -513,7 +504,6 @@ Durante o desenvolvimento do projeto, algumas dificuldades foram enfrentadas:
 - **Integração MCP**: Implementação do Model Context Protocol para auto-descoberta de ferramentas exigiu estudo aprofundado da especificação MCP
 - **Gerenciamento de Tools**: Criação de um sistema flexível que suporte tanto ferramentas tradicionais quanto MCP tools
 - **Processamento de Respostas**: Desenvolvimento do `ResponseProcessor` para lidar com diferentes formatos de resposta do Bedrock
-- **Síntese de Voz**: Integração com Amazon Polly via `TTSPollyService` para conversão texto-para-fala em tempo real
 - **Comparação de Arquiteturas**: Manutenção de duas implementações paralelas (tradicional vs MCP) para demonstrar benefícios de cada abordagem
 
 ---
