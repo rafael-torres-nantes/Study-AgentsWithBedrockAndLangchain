@@ -12,7 +12,6 @@ from utils.response_processor import ResponseProcessor, process_response, extrac
 
 # Import template classes for LLM
 from templates.prompt_template import PromptTemplate
-from templates.template_test_tools import PromptTemplate as TriviaPromptTemplate
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -111,7 +110,7 @@ def lambda_handler(event, context=None):
         print(f'[DEBUG] History length: {len(conversation_history)}')
 
         # 5 - Define template for LLM
-        prompt_template = TriviaPromptTemplate(user_query=user_query).get_prompt_text()
+        prompt_template = PromptTemplate(user_query=user_query).get_prompt_text()
         print(f'[DEBUG] Prompt Template: {prompt_template[:100]}...')
 
         # 6 - Initialize Bedrock MCP workflow with LangChain (simplified architecture)
