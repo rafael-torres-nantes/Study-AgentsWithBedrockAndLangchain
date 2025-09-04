@@ -21,8 +21,8 @@ class AmazonNovaPro:
         self.prompt_text = prompt_text
         self.additional_config = additional_config or {}
         
-        # ID do modelo Amazon Nova Pro
-        self.model_id = "amazon.nova-pro-v1:0"
+        # ID do modelo Amazon Nova Pro (usando inference profile)
+        self.model_id = "us.amazon.nova-pro-v1:0"
         
         # Configurações padrão do modelo
         self.default_config = {
