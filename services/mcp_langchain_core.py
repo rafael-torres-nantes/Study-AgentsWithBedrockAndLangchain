@@ -6,6 +6,8 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 from typing import List, Dict, Optional, Any
 import logging
 
+from dotenv import load_dotenv
+load_dotenv()
 
 class MCPLangChainCore:
     """
