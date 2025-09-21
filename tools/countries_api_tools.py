@@ -5,7 +5,7 @@ Módulo com tool especializada em consultar APIs de países com múltiplas rotas
 
 import requests
 from typing import Dict, Any, Optional
-from .mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
+from mcp_files.core.mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
 
 
 class ConsultaInformacoesPais(MCPToolBase):
@@ -67,7 +67,7 @@ class ConsultaInformacoesPais(MCPToolBase):
             # Rota 2: Dados econômicos (se solicitado)
             dados_economicos = None
             if incluir_dados_economicos:
-                codigo_pais = dados_basicos.get("cca2", "")
+                codigo_pais = dados_basicos.get("codigo_iso2", "")
                 if codigo_pais:
                     dados_economicos = self._consultar_dados_economicos(codigo_pais)
             
@@ -78,14 +78,14 @@ class ConsultaInformacoesPais(MCPToolBase):
                     .add_input_info(
                         pais_consultado=nome_pais,
                         incluiu_dados_economicos=incluir_dados_economicos,
-                        codigo_pais=dados_basicos.get("cca2", "N/A")
+                        codigo_pais=dados_basicos.get("codigo_iso2", "N/A")
                     )
                     .add_result(
                         dados_pais=resultado_combinado,
                         rotas_consultadas=2 if incluir_dados_economicos else 1,
                         api_utilizada="REST Countries v3.1"
                     )
-                    .add_summary(f"Informações de {resultado_combinado.get('nome_oficial', nome_pais)} coletadas com sucesso")
+                    .add_summary(f"Informações de {resultado_combinado.get('resumo_executivo', {}).get('pais', nome_pais)} coletadas com sucesso")
                     .build())
                     
         except requests.RequestException as e:
@@ -160,8 +160,7 @@ class ConsultaInformacoesPais(MCPToolBase):
             
             if response.status_code == 200:
                 data = response.json()
-                if data and len(data) > 0:
-                    return self._processar_dados_economicos(data[0])
+                return self._processar_dados_economicos(data)
                     
         except requests.RequestException as e:
             self.logger.warning(f"Erro ao buscar dados econômicos: {e}")

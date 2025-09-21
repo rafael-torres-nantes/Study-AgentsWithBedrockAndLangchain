@@ -5,7 +5,7 @@ Módulo com tool especializada em consultar múltiplas APIs de CEP para obter da
 
 import requests
 from typing import Dict, Any, Optional
-from .mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
+from mcp_files.core.mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
 
 
 class ConsultaEnderecoPorCEP(MCPToolBase):

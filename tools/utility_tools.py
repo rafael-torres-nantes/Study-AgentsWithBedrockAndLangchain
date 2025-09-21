@@ -5,7 +5,7 @@ Módulo com tools para cálculos, hash e outras utilidades.
 
 import hashlib
 from typing import Dict, Any
-from .mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
+from mcp_files.core.mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
 
 
 class CalculadoraBasica(MCPToolBase):

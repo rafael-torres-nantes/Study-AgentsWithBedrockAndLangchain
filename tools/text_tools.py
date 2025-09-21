@@ -5,7 +5,7 @@ Módulo com tools especializadas em análise e processamento de texto.
 
 import re
 from typing import Dict, Any
-from .mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
+from mcp_files.core.mcp_base import MCPToolBase, MCPResponseBuilder, MCPToolValidator
 
 
 class ContadorCaracteres(MCPToolBase):
